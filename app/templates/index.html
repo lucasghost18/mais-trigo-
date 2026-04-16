@@ -13,12 +13,13 @@
           <div>
             <h5>PEDIDO Nº <span class="badge bg-secondary">{{ o.id }}</span></h5>
             <div><strong>Cliente:</strong> {{ o.customer }}</div>
+            <div><strong>Vendedor:</strong> {{ o.vendor }}</div>
             <div><strong>Endereço:</strong> {{ o.address }}</div>
             <div><strong>Cidade:</strong> {{ o.city }} &nbsp; <strong>Tel:</strong> {{ o.phone }}</div>
             <div><strong>CNPJ:</strong> {{ o.cnpj }}</div>
+            <div><strong>Observação:</strong> {{ o.notes }}</div>
           </div>
           <div class="text-end">
-            <div><strong>Vendedor:</strong> __________</div>
             <div><strong>Data:</strong> {{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
           </div>
         </div>
@@ -54,10 +55,21 @@
         </table>
 
         <div class="d-flex justify-content-between mt-2">
-          <form method="post" action="/orders/{{ o.id }}/print">
-            <button class="btn btn-sm btn-outline-secondary" type="submit">Imprimir</button>
-            <a class="btn btn-sm btn-outline-primary" href="/prints/order_{{ o.id }}.txt" target="_blank">Ver arquivo</a>
-          </form>
+          <div>
+            <form method="post" action="/orders/{{ o.id }}/print" style="display:inline-block;margin-right:8px;">
+              <button class="btn btn-sm btn-outline-secondary" type="submit">Imprimir</button>
+            </form>
+            {% if exists_map.get(o.id) %}
+              <a class="btn btn-sm btn-outline-primary" href="/prints/order_{{ o.id }}.txt" target="_blank">Ver arquivo</a>
+            {% else %}
+              <button class="btn btn-sm btn-outline-secondary" disabled>Arquivo não gerado</button>
+            {% endif %}
+          </div>
+          <div>
+            <form method="post" action="/orders/{{ o.id }}/delete" onsubmit="return confirm('Remover pedido #{{ o.id }}?');" style="display:inline-block;">
+              <button class="btn btn-sm btn-danger" type="submit">Excluir</button>
+            </form>
+          </div>
         </div>
       </div>
     {% endfor %}

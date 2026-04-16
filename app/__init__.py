@@ -11,7 +11,7 @@ def create_app(test_config=None):
         SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL', 'sqlite:///orders.db'),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         PRINTER_METHOD=os.environ.get('PRINTER_METHOD', 'file'),
-        PRINTER_OUTPUT_DIR=os.environ.get('PRINTER_OUTPUT_DIR', 'prints'),
+        PRINTER_OUTPUT_DIR=os.environ.get('PRINTER_OUTPUT_DIR'),
     )
 
     if test_config:
@@ -25,6 +25,7 @@ def create_app(test_config=None):
         # register blueprint from routes
         app.register_blueprint(routes.bp)
         db.create_all()
+
         # Simple migration: add unit_price to order items if missing (SQLite)
         try:
             from sqlalchemy import inspect, text
@@ -35,18 +36,32 @@ def create_app(test_config=None):
             cols = [c['name'] for c in inspector.get_columns(table_name)]
             if 'unit_price' not in cols:
                 if db.engine.url.drivername == 'sqlite':
-                    db.session.execute(text(f'ALTER TABLE {table_name} ADD COLUMN unit_price FLOAT DEFAULT 0.0'))
+                    db.session.execute(text(f'ALTER TABLE "{table_name}" ADD COLUMN unit_price FLOAT DEFAULT 0.0'))
                     db.session.commit()
 
-            # order table migration: add customer address fields if missing
+            # order table migration: add customer address/vendor/notes fields if missing
             order_table = models.Order.__table__.name
             order_cols = [c['name'] for c in inspector.get_columns(order_table)]
-            for col_name, col_type in (('address', 'TEXT'), ('city', 'TEXT'), ('phone', 'TEXT'), ('cnpj', 'TEXT')):
+            new_order_cols = (('address', 'TEXT'), ('city', 'TEXT'), ('phone', 'TEXT'), ('cnpj', 'TEXT'), ('vendor', 'TEXT'), ('notes', 'TEXT'))
+            for col_name, col_type in new_order_cols:
                 if col_name not in order_cols:
                     if db.engine.url.drivername == 'sqlite':
-                        db.session.execute(text(f'ALTER TABLE {order_table} ADD COLUMN {col_name} {col_type}'))
+                        db.session.execute(text(f'ALTER TABLE "{order_table}" ADD COLUMN {col_name} {col_type}'))
             db.session.commit()
         except Exception as e:
             app.logger.info(f'Migration check skipped or failed: {e}')
+
+        # Ensure PRINTER_OUTPUT_DIR is absolute and exists
+        outdir = app.config.get('PRINTER_OUTPUT_DIR')
+        if not outdir:
+            outdir = os.path.join(app.root_path, 'prints')
+            app.config['PRINTER_OUTPUT_DIR'] = outdir
+        elif not os.path.isabs(outdir):
+            outdir = os.path.join(app.root_path, outdir)
+            app.config['PRINTER_OUTPUT_DIR'] = outdir
+        try:
+            os.makedirs(app.config['PRINTER_OUTPUT_DIR'], exist_ok=True)
+        except Exception:
+            app.logger.info('Could not create prints output directory')
 
     return app

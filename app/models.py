@@ -5,6 +5,8 @@ from datetime import datetime
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customer = db.Column(db.String(120))
+    vendor = db.Column(db.String(120))
+    notes = db.Column(db.Text)
     address = db.Column(db.String(200))
     city = db.Column(db.String(120))
     phone = db.Column(db.String(50))

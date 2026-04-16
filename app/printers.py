@@ -7,9 +7,11 @@ def _render_order_text(order):
     lines = []
     lines.append(f'Pedido: #{order.id}')
     lines.append(f'Cliente: {order.customer or "-"}')
+    lines.append(f'Vendedor: {order.vendor or "-"}')
     lines.append(f'Endereço: {order.address or "-"}')
     lines.append(f'Cidade: {order.city or "-"}    Tel: {order.phone or "-"}')
     lines.append(f'CNPJ: {order.cnpj or "-"}')
+    lines.append(f'Observação: {order.notes or "-"}')
     lines.append(f'Data: {order.created_at.strftime("%Y-%m-%d %H:%M")}')
     lines.append('-' * 60)
     lines.append(f'{"QUANT":>5}  {"DESCRIÇÃO":<30} {"UNIT.":>8} {"TOTAL":>8}')
@@ -34,6 +36,9 @@ def print_order(order):
     """
     method = current_app.config.get('PRINTER_METHOD', 'file')
     outdir = current_app.config.get('PRINTER_OUTPUT_DIR', 'prints')
+    # ensure absolute path
+    if not os.path.isabs(outdir):
+        outdir = os.path.join(current_app.root_path, outdir)
     os.makedirs(outdir, exist_ok=True)
 
     content = _render_order_text(order)
