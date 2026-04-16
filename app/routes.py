@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory
 import os
+import secrets
 from . import db
 from .models import Order, OrderItem, Vendor, Product
 from .printers import print_order
@@ -147,19 +148,154 @@ def products():
 @bp.route('/products/new', methods=['GET', 'POST'])
 def new_product():
     if request.method == 'POST':
-        name = request.form.get('name')
-        manufacturer = request.form.get('manufacturer')
-        sku = request.form.get('sku')
+        name = (request.form.get('name') or '').strip()
+        manufacturer = (request.form.get('manufacturer') or '').strip()
+        sku = (request.form.get('sku') or '').strip()
         try:
             price = float(request.form.get('unit_price') or 0.0)
         except:
             price = 0.0
+
+        # If sku not provided, generate one based on manufacturer
+        if not sku:
+            prefix = 'PRD'
+            if manufacturer:
+                prefix = ''.join(ch for ch in manufacturer if ch.isalnum()).upper()[:3] or 'PRD'
+            attempts = 0
+            while True:
+                candidate = f"{prefix}-{secrets.token_hex(3).upper()}"
+                if not Product.query.filter_by(sku=candidate).first():
+                    sku = candidate
+                    break
+                attempts += 1
+                if attempts > 5:
+                    sku = f"{prefix}-{secrets.token_hex(4).upper()}"
+                    break
+
+        # server-side uniqueness check
+        existing = Product.query.filter_by(sku=sku).first()
+        if existing:
+            flash('Código de referência (SKU) já existe. Escolha outro ou deixe em branco para gerar aleatório.', 'danger')
+            form = {'name': name, 'manufacturer': manufacturer, 'sku': sku, 'unit_price': price}
+            return render_template('product_form.html', form=form)
+
         p = Product(name=name, sku=sku, unit_price=price, manufacturer=manufacturer)
-        db.session.add(p)
-        db.session.commit()
-        flash('Produto criado com sucesso', 'success')
-        return redirect(url_for('main.products'))
+        try:
+            db.session.add(p)
+            db.session.commit()
+            flash('Produto criado com sucesso', 'success')
+            return redirect(url_for('main.products'))
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.exception('Erro ao salvar produto: %s', e)
+            flash('Erro ao salvar produto.', 'danger')
+            form = {'name': name, 'manufacturer': manufacturer, 'sku': sku, 'unit_price': price}
+            return render_template('product_form.html', form=form)
     return render_template('product_form.html')
+
+
+@bp.route('/products/<int:product_id>/edit', methods=['GET', 'POST'])
+def edit_product(product_id):
+    product = Product.query.get_or_404(product_id)
+    if request.method == 'POST':
+        name = (request.form.get('name') or '').strip()
+        manufacturer = (request.form.get('manufacturer') or '').strip()
+        sku = (request.form.get('sku') or '').strip()
+        try:
+            price = float(request.form.get('unit_price') or 0.0)
+        except:
+            price = 0.0
+
+        # If sku blank, generate one
+        if not sku:
+            prefix = 'PRD'
+            if manufacturer:
+                prefix = ''.join(ch for ch in manufacturer if ch.isalnum()).upper()[:3] or 'PRD'
+            attempts = 0
+            while True:
+                candidate = f"{prefix}-{secrets.token_hex(3).upper()}"
+                if not Product.query.filter_by(sku=candidate).first():
+                    sku = candidate
+                    break
+                attempts += 1
+                if attempts > 5:
+                    sku = f"{prefix}-{secrets.token_hex(4).upper()}"
+                    break
+
+        # uniqueness check excluding self
+        existing = Product.query.filter_by(sku=sku).first()
+        if existing and existing.id != product.id:
+            flash('Código de referência (SKU) já existe em outro produto.', 'danger')
+            return render_template('product_form.html', product=product)
+
+        product.name = name
+        product.manufacturer = manufacturer
+        product.sku = sku
+        product.unit_price = price
+        try:
+            db.session.commit()
+            flash('Produto atualizado com sucesso', 'success')
+            return redirect(url_for('main.products'))
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.exception('Erro ao atualizar produto: %s', e)
+            flash('Erro ao atualizar produto.', 'danger')
+            return render_template('product_form.html', product=product)
+    return render_template('product_form.html', product=product)
+
+
+@bp.route('/products/<int:product_id>/delete', methods=['POST'])
+def delete_product(product_id):
+    product = Product.query.get_or_404(product_id)
+    # prevent deletion if used in order items
+    used = OrderItem.query.filter_by(product_id=product_id).count()
+    if used:
+        flash('Não é possível excluir: produto está associado a pedidos.', 'danger')
+        return redirect(url_for('main.products'))
+    try:
+        db.session.delete(product)
+        db.session.commit()
+        flash('Produto removido com sucesso', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao remover produto: {e}', 'danger')
+    return redirect(url_for('main.products'))
+
+
+@bp.route('/vendors/<int:vendor_id>/edit', methods=['GET', 'POST'])
+def edit_vendor(vendor_id):
+    vendor = Vendor.query.get_or_404(vendor_id)
+    if request.method == 'POST':
+        vendor.name = request.form.get('name')
+        vendor.phone = request.form.get('phone')
+        vendor.email = request.form.get('email')
+        try:
+            db.session.commit()
+            flash('Vendedor atualizado com sucesso', 'success')
+            return redirect(url_for('main.vendors'))
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.exception('Erro ao atualizar vendedor: %s', e)
+            flash('Erro ao atualizar vendedor.', 'danger')
+            return render_template('vendor_form.html', vendor=vendor)
+    return render_template('vendor_form.html', vendor=vendor)
+
+
+@bp.route('/vendors/<int:vendor_id>/delete', methods=['POST'])
+def delete_vendor(vendor_id):
+    vendor = Vendor.query.get_or_404(vendor_id)
+    used = Order.query.filter_by(vendor_id=vendor_id).count()
+    if used:
+        flash('Não é possível excluir: vendedor está associado a pedidos.', 'danger')
+        return redirect(url_for('main.vendors'))
+    try:
+        db.session.delete(vendor)
+        db.session.commit()
+        flash('Vendedor removido com sucesso', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao remover vendedor: {e}', 'danger')
+    return redirect(url_for('main.vendors'))
 
 
 @bp.route('/orders/<int:order_id>/print', methods=['POST'])

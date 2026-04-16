@@ -38,5 +38,5 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     manufacturer = db.Column(db.String(200))
-    sku = db.Column(db.String(100))
+    sku = db.Column(db.String(100), unique=True)
     unit_price = db.Column(db.Float, default=0.0)

@@ -1,24 +1,24 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-  <h3>Novo Produto</h3>
-  <form method="post" id="product-form">
+  <h3>{{ 'Editar Produto' if product else 'Novo Produto' }}</h3>
+  <form method="post" id="product-form" action="{{ url_for('main.edit_product', product_id=product.id) if product else url_for('main.new_product') }}">
     <div class="mb-3">
       <label class="form-label">Nome</label>
-      <input class="form-control" name="name" required>
+      <input class="form-control" name="name" required value="{{ product.name if product else (form.get('name') if form else '') }}">
     </div>
     <div class="mb-3">
       <label class="form-label">Fabricante</label>
-      <input class="form-control" name="manufacturer" placeholder="Fabricante (opcional)">
+      <input class="form-control" name="manufacturer" placeholder="Fabricante (opcional)" value="{{ product.manufacturer if product else (form.get('manufacturer') if form else '') }}">
     </div>
     <div class="mb-3">
       <label class="form-label">Código de referência</label>
-      <input class="form-control" name="sku" placeholder="Código de referência (pode deixar em branco)">
+      <input class="form-control" name="sku" placeholder="Código de referência (pode deixar em branco)" value="{{ product.sku if product else (form.get('sku') if form else '') }}">
       <div class="form-text">Se não informar um código, será oferecida a opção de criar um código aleatório.</div>
     </div>
     <div class="mb-3">
       <label class="form-label">Preço unitário</label>
-      <input class="form-control" name="unit_price" type="number" step="0.01" min="0">
+      <input class="form-control" name="unit_price" type="number" step="0.01" min="0" value="{{ product.unit_price if product else (form.get('unit_price') if form else '') }}">
     </div>
     <button class="btn btn-primary" type="submit">Salvar</button>
     <a class="btn btn-link" href="{{ url_for('main.products') }}">Voltar</a>

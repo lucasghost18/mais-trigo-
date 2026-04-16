@@ -1,19 +1,19 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-  <h3>Novo Vendedor</h3>
-  <form method="post">
+  <h3>{{ 'Editar Vendedor' if vendor else 'Novo Vendedor' }}</h3>
+  <form method="post" action="{{ url_for('main.edit_vendor', vendor_id=vendor.id) if vendor else url_for('main.new_vendor') }}">
     <div class="mb-3">
       <label class="form-label">Nome</label>
-      <input class="form-control" name="name" required>
+      <input class="form-control" name="name" required value="{{ vendor.name if vendor else (form.get('name') if form else '') }}">
     </div>
     <div class="mb-3">
       <label class="form-label">Telefone</label>
-      <input class="form-control" name="phone">
+      <input class="form-control" name="phone" value="{{ vendor.phone if vendor else (form.get('phone') if form else '') }}">
     </div>
     <div class="mb-3">
       <label class="form-label">Email</label>
-      <input class="form-control" name="email" type="email">
+      <input class="form-control" name="email" type="email" value="{{ vendor.email if vendor else (form.get('email') if form else '') }}">
     </div>
     <button class="btn btn-primary" type="submit">Salvar</button>
     <a class="btn btn-link" href="{{ url_for('main.vendors') }}">Voltar</a>
