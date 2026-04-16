@@ -1,0 +1,79 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+  <h3>Novo Pedido</h3>
+  <form method="post" id="order-form">
+    <div class="mb-3 row">
+      <div class="col-md-4">
+        <label class="form-label">Cliente</label>
+        <input class="form-control" name="customer" placeholder="Nome do cliente">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Endereço</label>
+        <input class="form-control" name="address" placeholder="Rua, nº, bairro">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Cidade</label>
+        <input class="form-control" name="city" placeholder="Cidade - UF">
+      </div>
+    </div>
+    <div class="mb-3 row">
+      <div class="col-md-4">
+        <label class="form-label">Telefone</label>
+        <input class="form-control" name="phone" placeholder="(00) 00000-0000">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">CNPJ</label>
+        <input class="form-control" name="cnpj" placeholder="00.000.000/0000-00">
+      </div>
+    </div>
+
+    <div id="items">
+      <!-- item rows will be added here -->
+    </div>
+
+    <input type="hidden" id="item-count" name="item-count" value="0">
+
+    <div class="mb-3">
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addItem()">Adicionar item</button>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Criar Pedido</button>
+    <a class="btn btn-link" href="/">Voltar</a>
+  </form>
+
+  <script>
+    let count = 0;
+    function addItem(product = '', quantity = 1, unit_price = 0.0) {
+      const container = document.getElementById('items');
+      const idx = count++;
+      const row = document.createElement('div');
+      row.className = 'row mb-2';
+      row.innerHTML = `
+        <div class="col-6">
+          <input class="form-control" name="product-${idx}" placeholder="Produto" value="${product}">
+        </div>
+        <div class="col-3">
+          <input class="form-control" name="quantity-${idx}" placeholder="Quantidade" value="${quantity}">
+        </div>
+        <div class="col-2">
+          <input class="form-control" name="unit_price-${idx}" placeholder="Unitário" value="${unit_price}">
+        </div>
+        <div class="col-1">
+          <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.row').remove(); updateCount()">×</button>
+        </div>
+      `;
+      container.appendChild(row);
+      updateCount();
+    }
+
+    function updateCount(){
+      document.getElementById('item-count').value = document.querySelectorAll('#items .row').length;
+    }
+
+    // add two default item rows
+    addItem('',1,0.0);
+    addItem('',1,0.0);
+  </script>
+
+{% endblock %}

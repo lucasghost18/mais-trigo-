@@ -1,0 +1,9 @@
+body { padding-bottom: 40px; }
+.list-group-item form { margin-top: 8px; }
+
+.order-form { border: 1px solid #cfeef6; background: #ffffff; }
+.order-header { padding-bottom: 6px; border-bottom: 2px solid #cfeef6; }
+.order-table thead { background: #0d9bd7; color: #fff; }
+.order-table th, .order-table td { vertical-align: middle; }
+
+.badge { font-size: 100%; }
