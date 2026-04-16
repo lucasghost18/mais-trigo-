@@ -34,6 +34,30 @@ def index():
     return render_template('index.html', orders=orders, exists_map=exists_map)
 
 
+@bp.route('/orders/search')
+def orders_search():
+    # return only the orders list HTML fragment for AJAX search
+    q = request.args.get('q')
+    if q:
+        try:
+            order_id = int(q)
+            orders = Order.query.filter_by(id=order_id).order_by(Order.created_at.desc()).all()
+        except ValueError:
+            orders = []
+    else:
+        orders = Order.query.order_by(Order.created_at.desc()).all()
+    outdir = current_app.config.get('PRINTER_OUTPUT_DIR', 'prints')
+    if not os.path.isabs(outdir):
+        outdir = os.path.join(current_app.root_path, outdir)
+    exists_map = {}
+    for o in orders:
+        exists_map[o.id] = {
+            'txt': os.path.exists(os.path.join(outdir, f'order_{o.id}.txt')),
+            'pdf': os.path.exists(os.path.join(outdir, f'order_{o.id}.pdf')),
+        }
+    return render_template('_orders_list.html', orders=orders, exists_map=exists_map)
+
+
 @bp.route('/orders/new', methods=['GET', 'POST'])
 def new_order():
     if request.method == 'POST':
