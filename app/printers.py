@@ -15,7 +15,7 @@ def _render_order_text(order):
     lines.append(f'Observação: {order.notes or "-"}')
     lines.append(f'Data: {order.created_at.strftime("%Y-%m-%d %H:%M")}')
     lines.append('-' * 60)
-    lines.append(f'{"QUANT":>5}  {"DESCRIÇÃO":<30} {"UNIT.":>8} {"TOTAL":>8}')
+    lines.append(f'{"QUANT":>5}  {"DESCRIÇÃO":<30} {"PREÇO UNID":>12} {"TOTAL":>10}')
     lines.append('-' * 60)
     total = 0.0
     total_weight = 0.0
@@ -45,7 +45,7 @@ def _render_order_text(order):
         total += line_total
         total_weight += line_weight
         prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
-        lines.append(f'{q:>5}  {prod_name:<30} {up:>8.2f} {line_total:>8.2f}')
+        lines.append(f'{q:>5}  {prod_name:<30} {up:>12.2f} {line_total:>10.2f}')
     lines.append('-' * 60)
     total_weight_str = _fmt_weight_raw(total_weight)
     lines.append(f'TOTAL PESO: {total_weight_str} kg')
@@ -81,7 +81,7 @@ def print_order_pdf(order, outdir):
     story.append(Paragraph(f'<b>Data:</b> {order.created_at.strftime("%Y-%m-%d %H:%M")}', styles['Normal']))
     story.append(Spacer(1, 12))
 
-    data = [['QUANT', 'DESCRIÇÃO', 'UNIT.', 'TOTAL']]
+    data = [['QUANT', 'DESCRIÇÃO', 'PREÇO UNID', 'TOTAL']]
     total = 0.0
     total_weight = 0.0
     for it in order.items:
@@ -106,7 +106,7 @@ def print_order_pdf(order, outdir):
     # append total row for price
     data.append(['', '', 'TOTAL', f'{total:.2f}'])
 
-    colWidths = [50, 340, 60, 60]
+    colWidths = [50, 340, 80, 80]
     t = Table(data, colWidths=colWidths)
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d9bd7')),
