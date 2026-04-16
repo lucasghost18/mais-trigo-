@@ -34,10 +34,10 @@
             </tr>
           </thead>
           <tbody>
-            {% set sum = 0 %}
+            {% set ns = namespace(total=0.0) %}
             {% for it in o.items %}
               {% set line_total = (it.quantity or 0) * (it.unit_price or 0.0) %}
-              {% set sum = sum + line_total %}
+              {% set ns.total = ns.total + line_total %}
               <tr>
                 <td class="text-center">{{ it.quantity }}</td>
                 <td>{{ it.product or (it.product_obj.name if it.product_obj else '') }}</td>
@@ -49,7 +49,7 @@
           <tfoot>
             <tr>
               <td colspan="2" class="text-end"><strong>TOTAL</strong></td>
-              <td colspan="2" class="text-end"><strong>{{ '%.2f'|format(sum) }}</strong></td>
+              <td colspan="2" class="text-end"><strong>{{ '%.2f'|format(ns.total) }}</strong></td>
             </tr>
           </tfoot>
         </table>
