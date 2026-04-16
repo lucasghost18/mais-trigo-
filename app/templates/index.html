@@ -29,18 +29,23 @@
             <tr>
               <th class="text-center" style="width:10%;">QUANT.</th>
               <th>DESCRIÇÃO</th>
+              <th class="text-end" style="width:12%;">PESO (kg)</th>
               <th class="text-end" style="width:15%;">UNITÁRIO</th>
               <th class="text-end" style="width:15%;">TOTAL</th>
             </tr>
           </thead>
           <tbody>
-            {% set ns = namespace(total=0.0) %}
+            {% set ns = namespace(total=0.0, weight=0.0) %}
             {% for it in o.items %}
+              {% set unit_w = (it.unit_weight or (it.product_obj.weight if it.product_obj else 0.0)) %}
               {% set line_total = (it.quantity or 0) * (it.unit_price or 0.0) %}
+              {% set line_weight = (it.quantity or 0) * unit_w %}
               {% set ns.total = ns.total + line_total %}
+              {% set ns.weight = ns.weight + line_weight %}
               <tr>
                 <td class="text-center">{{ it.quantity }}</td>
                 <td>{{ it.product or (it.product_obj.name if it.product_obj else '') }}</td>
+                <td class="text-end">{{ '%.3f'|format(line_weight) }}</td>
                 <td class="text-end">{{ '%.2f'|format(it.unit_price or 0.0) }}</td>
                 <td class="text-end">{{ '%.2f'|format(line_total) }}</td>
               </tr>
@@ -48,8 +53,12 @@
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="2" class="text-end"><strong>TOTAL</strong></td>
+              <td colspan="3" class="text-end"><strong>TOTAL</strong></td>
               <td colspan="2" class="text-end"><strong>{{ '%.2f'|format(ns.total) }}</strong></td>
+            </tr>
+            <tr>
+              <td colspan="3" class="text-end"><strong>PESO TOTAL</strong></td>
+              <td colspan="2" class="text-end"><strong>{{ '%.3f'|format(ns.weight) }} kg</strong></td>
             </tr>
           </tfoot>
         </table>

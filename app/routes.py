@@ -45,6 +45,7 @@ def new_order():
             prod_id = request.form.get(f'product_id-{i}')
             qty = request.form.get(f'quantity-{i}')
             up = request.form.get(f'unit_price-{i}')
+            uw = request.form.get(f'unit_weight-{i}')
             # fallback to free-text product name
             prod_text = request.form.get(f'product-{i}')
             if qty:
@@ -67,20 +68,32 @@ def new_order():
                             price = float(up) if up else float(p.unit_price or 0.0)
                         except:
                             price = float(p.unit_price or 0.0)
-                        items.append({'product': product_name, 'product_id': pid, 'quantity': q, 'unit_price': price})
+                        try:
+                            weight = float(uw) if uw else float(p.weight or 0.0)
+                        except:
+                            weight = float(p.weight or 0.0)
+                        items.append({'product': product_name, 'product_id': pid, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
                     else:
                         # unknown id, fallback to text
                         try:
                             price = float(up) if up else 0.0
                         except:
                             price = 0.0
-                        items.append({'product': prod_text or '', 'product_id': None, 'quantity': q, 'unit_price': price})
+                        try:
+                            weight = float(uw) if uw else 0.0
+                        except:
+                            weight = 0.0
+                        items.append({'product': prod_text or '', 'product_id': None, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
                 else:
                     try:
                         price = float(up) if up else 0.0
                     except:
                         price = 0.0
-                    items.append({'product': prod_text or '', 'product_id': None, 'quantity': q, 'unit_price': price})
+                    try:
+                        weight = float(uw) if uw else 0.0
+                    except:
+                        weight = 0.0
+                    items.append({'product': prod_text or '', 'product_id': None, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
 
         order = Order(customer=customer, vendor=vendor, notes=notes, address=address, city=city, phone=phone, cnpj=cnpj)
         if vendor_id:
@@ -91,7 +104,7 @@ def new_order():
         db.session.add(order)
         db.session.flush()
         for it in items:
-            db.session.add(OrderItem(order_id=order.id, product=it['product'], product_id=it.get('product_id'), quantity=it['quantity'], unit_price=it.get('unit_price', 0.0)))
+            db.session.add(OrderItem(order_id=order.id, product=it['product'], product_id=it.get('product_id'), quantity=it['quantity'], unit_price=it.get('unit_price', 0.0), unit_weight=it.get('unit_weight', 0.0)))
         db.session.commit()
         # gerar arquivo de impressão automaticamente conforme opção do formulário
         print_method = request.form.get('print_method')

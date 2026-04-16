@@ -60,6 +60,10 @@ def create_app(test_config=None):
             if 'product_id' not in items_cols:
                 if db.engine.url.drivername == 'sqlite':
                     db.session.execute(text(f'ALTER TABLE "{items_table}" ADD COLUMN product_id INTEGER'))
+            # add unit_weight column to order items if missing
+            if 'unit_weight' not in items_cols:
+                if db.engine.url.drivername == 'sqlite':
+                    db.session.execute(text(f'ALTER TABLE "{items_table}" ADD COLUMN unit_weight FLOAT DEFAULT 0.0'))
             db.session.commit()
 
             # product table migration: add manufacturer if missing

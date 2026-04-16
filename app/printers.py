@@ -15,17 +15,31 @@ def _render_order_text(order):
     lines.append(f'Observação: {order.notes or "-"}')
     lines.append(f'Data: {order.created_at.strftime("%Y-%m-%d %H:%M")}')
     lines.append('-' * 60)
-    lines.append(f'{"QUANT":>5}  {"DESCRIÇÃO":<30} {"UNIT.":>8} {"TOTAL":>8}')
+    lines.append(f'{"QUANT":>5}  {"DESCRIÇÃO":<30} {"PESO(kg)":>10} {"UNIT.":>8} {"TOTAL":>8}')
     lines.append('-' * 60)
     total = 0.0
+    total_weight = 0.0
     for it in order.items:
         q = it.quantity or 0
         up = float(it.unit_price or 0.0)
+        # determine unit weight: prefer stored unit_weight, fallback to product weight
+        try:
+            uw = float(getattr(it, 'unit_weight', None) if getattr(it, 'unit_weight', None) is not None else 0.0)
+        except:
+            uw = 0.0
+        if not uw and getattr(it, 'product_obj', None):
+            try:
+                uw = float(getattr(it.product_obj, 'weight', 0.0) or 0.0)
+            except:
+                uw = 0.0
+        line_weight = q * uw
         line_total = q * up
         total += line_total
+        total_weight += line_weight
         prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
-        lines.append(f'{q:>5}  {prod_name:<30} {up:>8.2f} {line_total:>8.2f}')
+        lines.append(f'{q:>5}  {prod_name:<30} {line_weight:>10.3f} {up:>8.2f} {line_total:>8.2f}')
     lines.append('-' * 60)
+    lines.append(f'TOTAL PESO: {total_weight:.3f} kg')
     lines.append(f'TOTAL: {total:.2f}')
     lines.append('FIM')
     return '\n'.join(lines)
@@ -58,19 +72,32 @@ def print_order_pdf(order, outdir):
     story.append(Paragraph(f'<b>Data:</b> {order.created_at.strftime("%Y-%m-%d %H:%M")}', styles['Normal']))
     story.append(Spacer(1, 12))
 
-    data = [['QUANT', 'DESCRIÇÃO', 'UNIT.', 'TOTAL']]
+    data = [['QUANT', 'DESCRIÇÃO', 'PESO(kg)', 'UNIT.', 'TOTAL']]
     total = 0.0
+    total_weight = 0.0
     for it in order.items:
         q = it.quantity or 0
         up = float(it.unit_price or 0.0)
+        try:
+            uw = float(getattr(it, 'unit_weight', None) if getattr(it, 'unit_weight', None) is not None else 0.0)
+        except:
+            uw = 0.0
+        if not uw and getattr(it, 'product_obj', None):
+            try:
+                uw = float(getattr(it.product_obj, 'weight', 0.0) or 0.0)
+            except:
+                uw = 0.0
+        line_weight = q * uw
         line_total = q * up
         total += line_total
+        total_weight += line_weight
         prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
-        data.append([str(q), prod_name, f'{up:.2f}', f'{line_total:.2f}'])
+        data.append([str(q), prod_name, f'{line_weight:.3f}', f'{up:.2f}', f'{line_total:.2f}'])
 
-    data.append(['', '', 'TOTAL', f'{total:.2f}'])
+    # append total row for price
+    data.append(['', '', '', 'TOTAL', f'{total:.2f}'])
 
-    colWidths = [50, 300, 60, 60]
+    colWidths = [50, 260, 70, 60, 60]
     t = Table(data, colWidths=colWidths)
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d9bd7')),
@@ -79,10 +106,13 @@ def print_order_pdf(order, outdir):
         ('ALIGN', (2, 1), (3, -1), 'RIGHT'),
         ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
         ('SPAN', (0, len(data) - 1), (1, len(data) - 1)),
-        ('ALIGN', (2, len(data) - 1), (3, len(data) - 1), 'RIGHT'),
+        ('ALIGN', (3, len(data) - 1), (4, len(data) - 1), 'RIGHT'),
     ])
     t.setStyle(style)
     story.append(t)
+    # show total weight under the table
+    story.append(Spacer(1, 6))
+    story.append(Paragraph(f'<b>Peso total:</b> {total_weight:.3f} kg', styles['Normal']))
 
     doc.build(story)
     return filename

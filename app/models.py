@@ -25,6 +25,7 @@ class OrderItem(db.Model):
     product_obj = db.relationship('Product')
     quantity = db.Column(db.Integer)
     unit_price = db.Column(db.Float, default=0.0)
+    unit_weight = db.Column(db.Float, default=0.0)
 
 
 class Vendor(db.Model):
