@@ -50,6 +50,10 @@
       <!-- item rows will be added here -->
     </div>
 
+    <div class="mb-3 text-end">
+      <h5>Total do pedido: <span id="order-total">R$ 0,00</span></h5>
+    </div>
+
     <input type="hidden" id="item-count" name="item-count" value="0">
 
     <div class="mb-3">
@@ -77,6 +81,34 @@
     <script>
     const products = {{ products|tojson }};
     let count = 0;
+    function formatCurrencyBRL(value) {
+      try {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+      } catch (e) {
+        return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
+      }
+    }
+
+    function updateOrderTotal() {
+      var total = 0.0;
+      var rows = document.querySelectorAll('#items .row');
+      rows.forEach(function(row) {
+        var qtyInput = row.querySelector('input[name^="quantity-"]');
+        var priceInput = row.querySelector('input[name^="unit_price-"]');
+        var q = 0, p = 0;
+        if (qtyInput) {
+          var qv = (qtyInput.value || '').toString().replace(',', '.');
+          q = parseFloat(qv) || 0;
+        }
+        if (priceInput) {
+          var pv = (priceInput.value || '').toString().replace(',', '.');
+          p = parseFloat(pv) || 0;
+        }
+        total += q * p;
+      });
+      var el = document.getElementById('order-total');
+      if (el) el.textContent = formatCurrencyBRL(total);
+    }
     function addItem(product_id = '', quantity = 1, unit_price = 0.0) {
       const container = document.getElementById('items');
       const idx = count++;
@@ -122,6 +154,15 @@
         if (sel && sel.dataset && sel.dataset.price) {
           up.value = sel.dataset.price;
         }
+        // update total when product changes
+        updateOrderTotal();
+      });
+
+      // update total when quantity or price inputs change
+      row.addEventListener('input', function(e){
+        if (e.target && (e.target.name.startsWith('quantity-') || e.target.name.startsWith('unit_price-'))) {
+          updateOrderTotal();
+        }
       });
 
       updateCount();
@@ -129,6 +170,7 @@
 
     function updateCount(){
       document.getElementById('item-count').value = document.querySelectorAll('#items .row').length;
+      updateOrderTotal();
     }
     </script>
 
