@@ -97,7 +97,10 @@
       // populate select options and set handlers
       const select = row.querySelector(`select[name="product_id-${idx}"]`);
       let opts = '<option value="">-- Outro / Selecionar --</option>';
-      products.forEach(p => { opts += `<option value="${p.id}" data-price="${p.unit_price}">${p.name}</option>`; });
+      products.forEach(p => {
+        const label = p.manufacturer ? `${p.name} (${p.manufacturer})` : p.name;
+        opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
+      });
       select.innerHTML = opts;
       if (product_id) select.value = product_id;
       select.addEventListener('change', function(){

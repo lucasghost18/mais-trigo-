@@ -2,14 +2,19 @@
 
 {% block content %}
   <h3>Novo Produto</h3>
-  <form method="post">
+  <form method="post" id="product-form">
     <div class="mb-3">
       <label class="form-label">Nome</label>
       <input class="form-control" name="name" required>
     </div>
     <div class="mb-3">
-      <label class="form-label">SKU</label>
-      <input class="form-control" name="sku">
+      <label class="form-label">Fabricante</label>
+      <input class="form-control" name="manufacturer" placeholder="Fabricante (opcional)">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Código de referência</label>
+      <input class="form-control" name="sku" placeholder="Código de referência (pode deixar em branco)">
+      <div class="form-text">Se não informar um código, será oferecida a opção de criar um código aleatório.</div>
     </div>
     <div class="mb-3">
       <label class="form-label">Preço unitário</label>
@@ -18,4 +23,30 @@
     <button class="btn btn-primary" type="submit">Salvar</button>
     <a class="btn btn-link" href="{{ url_for('main.products') }}">Voltar</a>
   </form>
+
+  <script>
+    document.getElementById('product-form').addEventListener('submit', function(e){
+      var form = this;
+      var skuEl = form.querySelector('input[name="sku"]');
+      if (!skuEl) return;
+      var sku = (skuEl.value || '').trim();
+      if (!sku) {
+        e.preventDefault();
+        var ok = confirm('Código de referência não foi criado. Deseja criar um aleatório?');
+        if (ok) {
+          var manufacturer = (form.querySelector('input[name="manufacturer"]').value || '').trim();
+          var prefix = 'PRD';
+          if (manufacturer) {
+            prefix = manufacturer.replace(/\s+/g,'').toUpperCase().slice(0,3);
+          }
+          var rand = Math.random().toString(36).substring(2,8).toUpperCase();
+          var newSku = prefix + '-' + rand;
+          skuEl.value = newSku;
+          form.submit();
+        } else {
+          alert('Por favor, insira um código de referência ou permita gerar um aleatório.');
+        }
+      }
+    });
+  </script>
 {% endblock %}

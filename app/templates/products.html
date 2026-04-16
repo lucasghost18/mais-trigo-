@@ -8,12 +8,13 @@
 
   <table class="table table-sm">
     <thead>
-      <tr><th>Nome</th><th>SKU</th><th class="text-end">Unitário</th></tr>
+      <tr><th>Nome</th><th>Fabricante</th><th>Referência</th><th class="text-end">Unitário</th></tr>
     </thead>
     <tbody>
       {% for p in products %}
         <tr>
           <td>{{ p.name }}</td>
+          <td>{{ p.manufacturer or '' }}</td>
           <td>{{ p.sku }}</td>
           <td class="text-end">{{ '%.2f'|format(p.unit_price or 0.0) }}</td>
         </tr>

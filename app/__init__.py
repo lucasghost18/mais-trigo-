@@ -47,19 +47,32 @@ def create_app(test_config=None):
                 if col_name not in order_cols:
                     if db.engine.url.drivername == 'sqlite':
                         db.session.execute(text(f'ALTER TABLE "{order_table}" ADD COLUMN {col_name} {col_type}'))
-                # add vendor_id column to link to Vendor table
-                if 'vendor_id' not in order_cols:
-                    if db.engine.url.drivername == 'sqlite':
-                        db.session.execute(text(f'ALTER TABLE "{order_table}" ADD COLUMN vendor_id INTEGER'))
-                db.session.commit()
 
-                # order items: add product_id column if missing
-                items_table = models.OrderItem.__table__.name
-                items_cols = [c['name'] for c in inspector.get_columns(items_table)]
-                if 'product_id' not in items_cols:
+            # add vendor_id column to link to Vendor table
+            if 'vendor_id' not in order_cols:
+                if db.engine.url.drivername == 'sqlite':
+                    db.session.execute(text(f'ALTER TABLE "{order_table}" ADD COLUMN vendor_id INTEGER'))
+            db.session.commit()
+
+            # order items: add product_id column if missing
+            items_table = models.OrderItem.__table__.name
+            items_cols = [c['name'] for c in inspector.get_columns(items_table)]
+            if 'product_id' not in items_cols:
+                if db.engine.url.drivername == 'sqlite':
+                    db.session.execute(text(f'ALTER TABLE "{items_table}" ADD COLUMN product_id INTEGER'))
+            db.session.commit()
+
+            # product table migration: add manufacturer if missing
+            try:
+                product_table = models.Product.__table__.name
+                product_cols = [c['name'] for c in inspector.get_columns(product_table)]
+                if 'manufacturer' not in product_cols:
                     if db.engine.url.drivername == 'sqlite':
-                        db.session.execute(text(f'ALTER TABLE "{items_table}" ADD COLUMN product_id INTEGER'))
+                        db.session.execute(text(f'ALTER TABLE "{product_table}" ADD COLUMN manufacturer TEXT'))
                 db.session.commit()
+            except Exception:
+                # if product table does not exist yet, ignore
+                pass
         except Exception as e:
             app.logger.info(f'Migration check skipped or failed: {e}')
 

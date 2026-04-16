@@ -105,7 +105,16 @@ def new_order():
     vendors = Vendor.query.order_by(Vendor.name).all()
     products = Product.query.order_by(Product.name).all()
     # serialize products for JSON usage in template
-    products_data = [{'id': p.id, 'name': p.name, 'unit_price': float(p.unit_price or 0.0)} for p in products]
+    products_data = [
+        {
+            'id': p.id,
+            'name': p.name,
+            'unit_price': float(p.unit_price or 0.0),
+            'sku': p.sku or '',
+            'manufacturer': p.manufacturer or ''
+        }
+        for p in products
+    ]
     return render_template('new_order.html', vendors=vendors, products=products_data)
 
 
@@ -139,12 +148,13 @@ def products():
 def new_product():
     if request.method == 'POST':
         name = request.form.get('name')
+        manufacturer = request.form.get('manufacturer')
         sku = request.form.get('sku')
         try:
             price = float(request.form.get('unit_price') or 0.0)
         except:
             price = 0.0
-        p = Product(name=name, sku=sku, unit_price=price)
+        p = Product(name=name, sku=sku, unit_price=price, manufacturer=manufacturer)
         db.session.add(p)
         db.session.commit()
         flash('Produto criado com sucesso', 'success')
