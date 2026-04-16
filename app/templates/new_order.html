@@ -1,5 +1,9 @@
 {% extends 'layout.html' %}
 
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+{% endblock %}
+
 {% block content %}
   <h3>Novo Pedido</h3>
   <form method="post" id="order-form">
@@ -80,7 +84,7 @@
       row.className = 'row mb-2';
       row.innerHTML = `
         <div class="col-5">
-          <select class="form-select" name="product_id-${idx}"></select>
+          <select class="form-select product-select" name="product_id-${idx}"></select>
         </div>
         <div class="col-2">
           <input class="form-control" name="unit_weight-${idx}" placeholder="Peso (kg)" value="0.0" readonly>
@@ -105,6 +109,15 @@
         opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}" data-weight="${p.weight}">${label}</option>`;
       });
       select.innerHTML = opts;
+
+      // initialize Choices (searchable select) if available
+      try {
+        new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: ''});
+      } catch (e) {
+        // Choices may not be loaded yet; harmless fallback
+        console.warn('Choices not available yet', e);
+      }
+
       if (product_id) select.value = product_id;
       select.addEventListener('change', function(){
         const up = row.querySelector(`input[name="unit_price-${idx}"]`);
@@ -124,10 +137,18 @@
     function updateCount(){
       document.getElementById('item-count').value = document.querySelectorAll('#items .row').length;
     }
+    </script>
 
-    // add two default item rows
-    addItem('',1,0.0);
-    addItem('',1,0.0);
-  </script>
+    {% block scripts %}
+      {{ super() }}
+      <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          // add two default item rows after Choices.js is available
+          addItem('',1,0.0);
+          addItem('',1,0.0);
+        });
+      </script>
+    {% endblock %}
 
 {% endblock %}
