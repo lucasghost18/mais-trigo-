@@ -40,3 +40,4 @@ class Product(db.Model):
     manufacturer = db.Column(db.String(200))
     sku = db.Column(db.String(100), unique=True)
     unit_price = db.Column(db.Float, default=0.0)
+    weight = db.Column(db.Float, default=0.0)

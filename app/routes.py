@@ -111,6 +111,7 @@ def new_order():
             'id': p.id,
             'name': p.name,
             'unit_price': float(p.unit_price or 0.0),
+            'weight': float(p.weight or 0.0),
             'sku': p.sku or '',
             'manufacturer': p.manufacturer or ''
         }
@@ -152,6 +153,10 @@ def new_product():
         manufacturer = (request.form.get('manufacturer') or '').strip()
         sku = (request.form.get('sku') or '').strip()
         try:
+            weight = float(request.form.get('weight') or 0.0)
+        except:
+            weight = 0.0
+        try:
             price = float(request.form.get('unit_price') or 0.0)
         except:
             price = 0.0
@@ -179,7 +184,7 @@ def new_product():
             form = {'name': name, 'manufacturer': manufacturer, 'sku': sku, 'unit_price': price}
             return render_template('product_form.html', form=form)
 
-        p = Product(name=name, sku=sku, unit_price=price, manufacturer=manufacturer)
+        p = Product(name=name, sku=sku, unit_price=price, manufacturer=manufacturer, weight=weight)
         try:
             db.session.add(p)
             db.session.commit()
@@ -189,7 +194,7 @@ def new_product():
             db.session.rollback()
             current_app.logger.exception('Erro ao salvar produto: %s', e)
             flash('Erro ao salvar produto.', 'danger')
-            form = {'name': name, 'manufacturer': manufacturer, 'sku': sku, 'unit_price': price}
+            form = {'name': name, 'manufacturer': manufacturer, 'sku': sku, 'unit_price': price, 'weight': weight}
             return render_template('product_form.html', form=form)
     return render_template('product_form.html')
 
@@ -201,6 +206,10 @@ def edit_product(product_id):
         name = (request.form.get('name') or '').strip()
         manufacturer = (request.form.get('manufacturer') or '').strip()
         sku = (request.form.get('sku') or '').strip()
+        try:
+            weight = float(request.form.get('weight') or 0.0)
+        except:
+            weight = 0.0
         try:
             price = float(request.form.get('unit_price') or 0.0)
         except:
@@ -231,6 +240,7 @@ def edit_product(product_id):
         product.name = name
         product.manufacturer = manufacturer
         product.sku = sku
+        product.weight = weight
         product.unit_price = price
         try:
             db.session.commit()

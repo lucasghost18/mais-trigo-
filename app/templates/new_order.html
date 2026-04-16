@@ -79,10 +79,13 @@
       const row = document.createElement('div');
       row.className = 'row mb-2';
       row.innerHTML = `
-        <div class="col-6">
+        <div class="col-5">
           <select class="form-select" name="product_id-${idx}"></select>
         </div>
-        <div class="col-3">
+        <div class="col-2">
+          <input class="form-control" name="unit_weight-${idx}" placeholder="Peso (kg)" value="0.0" readonly>
+        </div>
+        <div class="col-2">
           <input class="form-control" name="quantity-${idx}" placeholder="Quantidade" value="${quantity}">
         </div>
         <div class="col-2">
@@ -99,15 +102,19 @@
       let opts = '<option value="">-- Outro / Selecionar --</option>';
       products.forEach(p => {
         const label = p.manufacturer ? `${p.name} (${p.manufacturer})` : p.name;
-        opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
+        opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}" data-weight="${p.weight}">${label}</option>`;
       });
       select.innerHTML = opts;
       if (product_id) select.value = product_id;
       select.addEventListener('change', function(){
         const up = row.querySelector(`input[name="unit_price-${idx}"]`);
+        const weightInput = row.querySelector(`input[name="unit_weight-${idx}"]`);
         const sel = this.selectedOptions[0];
         if (sel && sel.dataset && sel.dataset.price) {
           up.value = sel.dataset.price;
+        }
+        if (sel && sel.dataset && sel.dataset.weight) {
+          weightInput.value = sel.dataset.weight;
         }
       });
 

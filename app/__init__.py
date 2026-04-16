@@ -69,6 +69,10 @@ def create_app(test_config=None):
                 if 'manufacturer' not in product_cols:
                     if db.engine.url.drivername == 'sqlite':
                         db.session.execute(text(f'ALTER TABLE "{product_table}" ADD COLUMN manufacturer TEXT'))
+                # add weight column to product table if missing
+                if 'weight' not in product_cols:
+                    if db.engine.url.drivername == 'sqlite':
+                        db.session.execute(text(f'ALTER TABLE "{product_table}" ADD COLUMN weight FLOAT DEFAULT 0.0'))
                 db.session.commit()
             except Exception:
                 # if product table does not exist yet, ignore
