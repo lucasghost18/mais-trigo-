@@ -16,7 +16,10 @@ def index():
         outdir = os.path.join(current_app.root_path, outdir)
     exists_map = {}
     for o in orders:
-        exists_map[o.id] = os.path.exists(os.path.join(outdir, f'order_{o.id}.txt'))
+        exists_map[o.id] = {
+            'txt': os.path.exists(os.path.join(outdir, f'order_{o.id}.txt')),
+            'pdf': os.path.exists(os.path.join(outdir, f'order_{o.id}.pdf')),
+        }
     return render_template('index.html', orders=orders, exists_map=exists_map)
 
 
@@ -56,7 +59,14 @@ def new_order():
         for it in items:
             db.session.add(OrderItem(order_id=order.id, product=it['product'], quantity=it['quantity'], unit_price=it.get('unit_price', 0.0)))
         db.session.commit()
-        flash('Pedido criado com sucesso', 'success')
+        # gerar arquivo de impressão automaticamente conforme opção do formulário
+        print_method = request.form.get('print_method')
+        try:
+            filename = print_order(order, method=print_method)
+            flash(f'Pedido criado e arquivo gerado: {filename}', 'success')
+        except Exception as e:
+            current_app.logger.exception('Erro ao gerar impressão: %s', e)
+            flash('Pedido criado com sucesso. Falha ao gerar arquivo de impressão.', 'warning')
         return redirect(url_for('main.index'))
     return render_template('new_order.html')
 
@@ -88,4 +98,6 @@ def order_delete(order_id):
 @bp.route('/prints/<path:filename>')
 def prints(filename):
     pdir = current_app.config.get('PRINTER_OUTPUT_DIR', 'prints')
+    if not os.path.isabs(pdir):
+        pdir = os.path.join(current_app.root_path, pdir)
     return send_from_directory(pdir, filename)

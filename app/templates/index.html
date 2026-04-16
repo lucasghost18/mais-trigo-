@@ -59,7 +59,9 @@
             <form method="post" action="/orders/{{ o.id }}/print" style="display:inline-block;margin-right:8px;">
               <button class="btn btn-sm btn-outline-secondary" type="submit">Imprimir</button>
             </form>
-            {% if exists_map.get(o.id) %}
+            {% if exists_map.get(o.id) and exists_map[o.id].pdf %}
+              <a class="btn btn-sm btn-outline-primary" href="/prints/order_{{ o.id }}.pdf" target="_blank">Ver PDF</a>
+            {% elif exists_map.get(o.id) and exists_map[o.id].txt %}
               <a class="btn btn-sm btn-outline-primary" href="/prints/order_{{ o.id }}.txt" target="_blank">Ver arquivo</a>
             {% else %}
               <button class="btn btn-sm btn-outline-secondary" disabled>Arquivo não gerado</button>
