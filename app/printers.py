@@ -19,6 +19,14 @@ def _render_order_text(order):
     lines.append('-' * 60)
     total = 0.0
     total_weight = 0.0
+    def _fmt_weight_raw(v):
+        try:
+            f = float(v or 0.0)
+        except:
+            return ''
+        s = f"{f:.3f}".rstrip('0').rstrip('.')
+        return s
+
     for it in order.items:
         q = it.quantity or 0
         up = float(it.unit_price or 0.0)
@@ -37,9 +45,11 @@ def _render_order_text(order):
         total += line_total
         total_weight += line_weight
         prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
-        lines.append(f'{q:>5}  {prod_name:<30} {line_weight:>10.3f} {up:>8.2f} {line_total:>8.2f}')
+        weight_str = _fmt_weight_raw(line_weight)
+        lines.append(f'{q:>5}  {prod_name:<30} {weight_str:>10} {up:>8.2f} {line_total:>8.2f}')
     lines.append('-' * 60)
-    lines.append(f'TOTAL PESO: {total_weight:.3f} kg')
+    total_weight_str = _fmt_weight_raw(total_weight)
+    lines.append(f'TOTAL PESO: {total_weight_str} kg')
     lines.append(f'TOTAL: {total:.2f}')
     lines.append('FIM')
     return '\n'.join(lines)
@@ -92,7 +102,13 @@ def print_order_pdf(order, outdir):
         total += line_total
         total_weight += line_weight
         prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
-        data.append([str(q), prod_name, f'{line_weight:.3f}', f'{up:.2f}', f'{line_total:.2f}'])
+        # format weight string with up to 3 decimals but trim trailing zeros
+        try:
+            lw = float(line_weight or 0.0)
+        except:
+            lw = 0.0
+        weight_str = (f"{lw:.3f}").rstrip('0').rstrip('.')
+        data.append([str(q), prod_name, weight_str, f'{up:.2f}', f'{line_total:.2f}'])
 
     # append total row for price
     data.append(['', '', '', 'TOTAL', f'{total:.2f}'])
@@ -110,9 +126,10 @@ def print_order_pdf(order, outdir):
     ])
     t.setStyle(style)
     story.append(t)
-    # show total weight under the table
+    # show total weight under the table (formatted)
     story.append(Spacer(1, 6))
-    story.append(Paragraph(f'<b>Peso total:</b> {total_weight:.3f} kg', styles['Normal']))
+    total_weight_str = (f"{(float(total_weight) if total_weight else 0.0):.3f}").rstrip('0').rstrip('.')
+    story.append(Paragraph(f'<b>Peso total:</b> {total_weight_str} kg', styles['Normal']))
 
     doc.build(story)
     return filename

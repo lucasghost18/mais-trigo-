@@ -97,4 +97,17 @@ def create_app(test_config=None):
         except Exception:
             app.logger.info('Could not create prints output directory')
 
+        # Jinja filter: format weight trimming unnecessary decimal zeros
+        def fmt_weight(value):
+            try:
+                v = float(value or 0.0)
+            except Exception:
+                return ''
+            s = f"{v:.3f}"
+            # strip trailing zeros and possible trailing dot
+            s = s.rstrip('0').rstrip('.')
+            return s
+
+        app.jinja_env.filters['fmt_weight'] = fmt_weight
+
     return app

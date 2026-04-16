@@ -16,7 +16,7 @@
           <td>{{ p.name }}</td>
           <td>{{ p.manufacturer or '' }}</td>
           <td>{{ p.sku }}</td>
-          <td class="text-end">{{ '%.3f'|format(p.weight or 0.0) }}</td>
+          <td class="text-end">{{ p.weight|fmt_weight }}</td>
           <td class="text-end">{{ '%.2f'|format(p.unit_price or 0.0) }}</td>
           <td>
             <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.edit_product', product_id=p.id) }}">Editar</a>

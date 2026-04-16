@@ -45,7 +45,7 @@
               <tr>
                 <td class="text-center">{{ it.quantity }}</td>
                 <td>{{ it.product or (it.product_obj.name if it.product_obj else '') }}</td>
-                <td class="text-end">{{ '%.3f'|format(line_weight) }}</td>
+                <td class="text-end">{{ line_weight|fmt_weight }}</td>
                 <td class="text-end">{{ '%.2f'|format(it.unit_price or 0.0) }}</td>
                 <td class="text-end">{{ '%.2f'|format(line_total) }}</td>
               </tr>
@@ -58,7 +58,7 @@
             </tr>
             <tr>
               <td colspan="3" class="text-end"><strong>PESO TOTAL</strong></td>
-              <td colspan="2" class="text-end"><strong>{{ '%.3f'|format(ns.weight) }} kg</strong></td>
+              <td colspan="2" class="text-end"><strong>{{ ns.weight|fmt_weight }} kg</strong></td>
             </tr>
           </tfoot>
         </table>
