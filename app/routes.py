@@ -104,7 +104,9 @@ def new_order():
     # GET: provide vendors and products for selection
     vendors = Vendor.query.order_by(Vendor.name).all()
     products = Product.query.order_by(Product.name).all()
-    return render_template('new_order.html', vendors=vendors, products=products)
+    # serialize products for JSON usage in template
+    products_data = [{'id': p.id, 'name': p.name, 'unit_price': float(p.unit_price or 0.0)} for p in products]
+    return render_template('new_order.html', vendors=vendors, products=products_data)
 
 
 @bp.route('/vendors')
