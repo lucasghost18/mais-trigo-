@@ -15,7 +15,7 @@ def _render_order_text(order):
     lines.append(f'Observação: {order.notes or "-"}')
     lines.append(f'Data: {order.created_at.strftime("%Y-%m-%d %H:%M")}')
     lines.append('-' * 60)
-    lines.append(f'{"QUANT":>5}  {"DESCRIÇÃO":<30} {"PESO(kg)":>10} {"UNIT.":>8} {"TOTAL":>8}')
+    lines.append(f'{"QUANT":>5}  {"DESCRIÇÃO":<30} {"UNIT.":>8} {"TOTAL":>8}')
     lines.append('-' * 60)
     total = 0.0
     total_weight = 0.0
@@ -45,8 +45,7 @@ def _render_order_text(order):
         total += line_total
         total_weight += line_weight
         prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
-        weight_str = _fmt_weight_raw(line_weight)
-        lines.append(f'{q:>5}  {prod_name:<30} {weight_str:>10} {up:>8.2f} {line_total:>8.2f}')
+        lines.append(f'{q:>5}  {prod_name:<30} {up:>8.2f} {line_total:>8.2f}')
     lines.append('-' * 60)
     total_weight_str = _fmt_weight_raw(total_weight)
     lines.append(f'TOTAL PESO: {total_weight_str} kg')
@@ -82,7 +81,7 @@ def print_order_pdf(order, outdir):
     story.append(Paragraph(f'<b>Data:</b> {order.created_at.strftime("%Y-%m-%d %H:%M")}', styles['Normal']))
     story.append(Spacer(1, 12))
 
-    data = [['QUANT', 'DESCRIÇÃO', 'PESO(kg)', 'UNIT.', 'TOTAL']]
+    data = [['QUANT', 'DESCRIÇÃO', 'UNIT.', 'TOTAL']]
     total = 0.0
     total_weight = 0.0
     for it in order.items:
@@ -102,27 +101,21 @@ def print_order_pdf(order, outdir):
         total += line_total
         total_weight += line_weight
         prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
-        # format weight string with up to 3 decimals but trim trailing zeros
-        try:
-            lw = float(line_weight or 0.0)
-        except:
-            lw = 0.0
-        weight_str = (f"{lw:.3f}").rstrip('0').rstrip('.')
-        data.append([str(q), prod_name, weight_str, f'{up:.2f}', f'{line_total:.2f}'])
+        data.append([str(q), prod_name, f'{up:.2f}', f'{line_total:.2f}'])
 
     # append total row for price
-    data.append(['', '', '', 'TOTAL', f'{total:.2f}'])
+    data.append(['', '', 'TOTAL', f'{total:.2f}'])
 
-    colWidths = [50, 260, 70, 60, 60]
+    colWidths = [50, 340, 60, 60]
     t = Table(data, colWidths=colWidths)
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d9bd7')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('ALIGN', (2, 1), (3, -1), 'RIGHT'),
+        ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
         ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
         ('SPAN', (0, len(data) - 1), (1, len(data) - 1)),
-        ('ALIGN', (3, len(data) - 1), (4, len(data) - 1), 'RIGHT'),
+        ('ALIGN', (2, len(data) - 1), (3, len(data) - 1), 'RIGHT'),
     ])
     t.setStyle(style)
     story.append(t)
