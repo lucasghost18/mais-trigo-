@@ -13,7 +13,7 @@
           <div>
             <h5>PEDIDO Nº <span class="badge bg-secondary">{{ o.id }}</span></h5>
             <div><strong>Cliente:</strong> {{ o.customer }}</div>
-            <div><strong>Vendedor:</strong> {{ o.vendor }}</div>
+            <div><strong>Vendedor:</strong> {{ o.vendor_obj.name if o.vendor_obj else o.vendor }}</div>
             <div><strong>Endereço:</strong> {{ o.address }}</div>
             <div><strong>Cidade:</strong> {{ o.city }} &nbsp; <strong>Tel:</strong> {{ o.phone }}</div>
             <div><strong>CNPJ:</strong> {{ o.cnpj }}</div>
@@ -40,7 +40,7 @@
               {% set sum = sum + line_total %}
               <tr>
                 <td class="text-center">{{ it.quantity }}</td>
-                <td>{{ it.product }}</td>
+                <td>{{ it.product or (it.product_obj.name if it.product_obj else '') }}</td>
                 <td class="text-end">{{ '%.2f'|format(it.unit_price or 0.0) }}</td>
                 <td class="text-end">{{ '%.2f'|format(line_total) }}</td>
               </tr>

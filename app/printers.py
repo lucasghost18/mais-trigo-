@@ -7,7 +7,8 @@ def _render_order_text(order):
     lines = []
     lines.append(f'Pedido: #{order.id}')
     lines.append(f'Cliente: {order.customer or "-"}')
-    lines.append(f'Vendedor: {order.vendor or "-"}')
+    vendor_name = (order.vendor_obj.name if getattr(order, 'vendor_obj', None) else order.vendor)
+    lines.append(f'Vendedor: {vendor_name or "-"}')
     lines.append(f'Endereço: {order.address or "-"}')
     lines.append(f'Cidade: {order.city or "-"}    Tel: {order.phone or "-"}')
     lines.append(f'CNPJ: {order.cnpj or "-"}')
@@ -22,7 +23,8 @@ def _render_order_text(order):
         up = float(it.unit_price or 0.0)
         line_total = q * up
         total += line_total
-        lines.append(f'{q:>5}  {it.product:<30} {up:>8.2f} {line_total:>8.2f}')
+        prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
+        lines.append(f'{q:>5}  {prod_name:<30} {up:>8.2f} {line_total:>8.2f}')
     lines.append('-' * 60)
     lines.append(f'TOTAL: {total:.2f}')
     lines.append('FIM')
@@ -47,7 +49,8 @@ def print_order_pdf(order, outdir):
     story.append(Paragraph(f'PEDIDO Nº {order.id}', styles['Title']))
     story.append(Spacer(1, 6))
     story.append(Paragraph(f'<b>Cliente:</b> {order.customer or "-"}', styles['Normal']))
-    story.append(Paragraph(f'<b>Vendedor:</b> {order.vendor or "-"}', styles['Normal']))
+    vendor_name = (order.vendor_obj.name if getattr(order, 'vendor_obj', None) else order.vendor)
+    story.append(Paragraph(f'<b>Vendedor:</b> {vendor_name or "-"}', styles['Normal']))
     story.append(Paragraph(f'<b>Endereço:</b> {order.address or "-"}', styles['Normal']))
     story.append(Paragraph(f'<b>Cidade / Tel:</b> {order.city or "-"} / {order.phone or "-"}', styles['Normal']))
     story.append(Paragraph(f'<b>CNPJ:</b> {order.cnpj or "-"}', styles['Normal']))
@@ -62,7 +65,8 @@ def print_order_pdf(order, outdir):
         up = float(it.unit_price or 0.0)
         line_total = q * up
         total += line_total
-        data.append([str(q), it.product or '', f'{up:.2f}', f'{line_total:.2f}'])
+        prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
+        data.append([str(q), prod_name, f'{up:.2f}', f'{line_total:.2f}'])
 
     data.append(['', '', 'TOTAL', f'{total:.2f}'])
 

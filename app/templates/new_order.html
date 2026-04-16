@@ -10,7 +10,13 @@
       </div>
       <div class="col-md-3">
         <label class="form-label">Vendedor</label>
-        <input class="form-control" name="vendor" placeholder="Nome do vendedor">
+        <select class="form-select" name="vendor_id" id="vendor-select">
+          <option value="">-- Outro / Sem vendedor --</option>
+          {% for v in vendors %}
+            <option value="{{ v.id }}">{{ v.name }}</option>
+          {% endfor %}
+        </select>
+        <input class="form-control mt-2" name="vendor" id="vendor-other" placeholder="Nome do vendedor (se não selecionado)">
       </div>
       <div class="col-md-3">
         <label class="form-label">Endereço</label>
@@ -64,16 +70,17 @@
     <a class="btn btn-link" href="/">Voltar</a>
   </form>
 
-  <script>
+    <script>
+    const products = {{ products|tojson }};
     let count = 0;
-    function addItem(product = '', quantity = 1, unit_price = 0.0) {
+    function addItem(product_id = '', quantity = 1, unit_price = 0.0) {
       const container = document.getElementById('items');
       const idx = count++;
       const row = document.createElement('div');
       row.className = 'row mb-2';
       row.innerHTML = `
         <div class="col-6">
-          <input class="form-control" name="product-${idx}" placeholder="Produto" value="${product}">
+          <select class="form-select" name="product_id-${idx}"></select>
         </div>
         <div class="col-3">
           <input class="form-control" name="quantity-${idx}" placeholder="Quantidade" value="${quantity}">
@@ -86,6 +93,21 @@
         </div>
       `;
       container.appendChild(row);
+
+      // populate select options and set handlers
+      const select = row.querySelector(`select[name="product_id-${idx}"]`);
+      let opts = '<option value="">-- Outro / Selecionar --</option>';
+      products.forEach(p => { opts += `<option value="${p.id}" data-price="${p.unit_price}">${p.name}</option>`; });
+      select.innerHTML = opts;
+      if (product_id) select.value = product_id;
+      select.addEventListener('change', function(){
+        const up = row.querySelector(`input[name="unit_price-${idx}"]`);
+        const sel = this.selectedOptions[0];
+        if (sel && sel.dataset && sel.dataset.price) {
+          up.value = sel.dataset.price;
+        }
+      });
+
       updateCount();
     }
 

@@ -1,0 +1,21 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+  <h3>Novo Vendedor</h3>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Nome</label>
+      <input class="form-control" name="name" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Telefone</label>
+      <input class="form-control" name="phone">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Email</label>
+      <input class="form-control" name="email" type="email">
+    </div>
+    <button class="btn btn-primary" type="submit">Salvar</button>
+    <a class="btn btn-link" href="{{ url_for('main.vendors') }}">Voltar</a>
+  </form>
+{% endblock %}
