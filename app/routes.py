@@ -10,7 +10,17 @@ bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    orders = Order.query.order_by(Order.created_at.desc()).all()
+    # support optional search by order number via query param `q`
+    q = request.args.get('q')
+    if q:
+        try:
+            order_id = int(q)
+            orders = Order.query.filter_by(id=order_id).order_by(Order.created_at.desc()).all()
+        except ValueError:
+            flash('Número de pedido inválido', 'warning')
+            orders = Order.query.order_by(Order.created_at.desc()).all()
+    else:
+        orders = Order.query.order_by(Order.created_at.desc()).all()
     outdir = current_app.config.get('PRINTER_OUTPUT_DIR', 'prints')
     # ensure absolute path
     if not os.path.isabs(outdir):

@@ -3,7 +3,13 @@
 {% block content %}
   <div class="d-flex justify-content-between mb-3">
     <h3>Pedidos</h3>
-    <a class="btn btn-primary" href="/orders/new">Novo Pedido</a>
+    <div class="d-flex">
+      <form class="d-flex me-2" method="get" action="{{ url_for('main.index') }}">
+        <input class="form-control form-control-sm me-2" name="q" placeholder="Buscar por nº do pedido" value="{{ request.args.get('q','') }}">
+        <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
+      </form>
+      <a class="btn btn-primary" href="/orders/new">Novo Pedido</a>
+    </div>
   </div>
 
   {% if orders %}
