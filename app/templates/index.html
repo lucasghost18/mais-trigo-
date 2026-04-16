@@ -4,8 +4,8 @@
   <div class="d-flex justify-content-between mb-3">
     <h3>Pedidos</h3>
     <div class="d-flex">
-      <form class="d-flex me-2" method="get" action="{{ url_for('main.index') }}">
-        <input class="form-control form-control-sm me-2" name="q" placeholder="Buscar por nº do pedido" value="{{ request.args.get('q','') }}">
+      <form id="order-search-form" class="d-flex me-2" method="get" action="{{ url_for('main.index') }}">
+        <input id="order-search" class="form-control form-control-sm me-2" name="q" placeholder="Buscar por nº do pedido" value="{{ request.args.get('q','') }}">
         <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
       </form>
       <a class="btn btn-primary" href="/orders/new">Novo Pedido</a>
@@ -96,4 +96,27 @@
     <p>Nenhum pedido encontrado.</p>
   {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var input = document.getElementById('order-search');
+      var form = document.getElementById('order-search-form');
+      if (!input || !form) return;
+      var timer = null;
+      input.addEventListener('input', function() {
+        clearTimeout(timer);
+        timer = setTimeout(function() {
+          var q = input.value.trim();
+          if (q === '') {
+            window.location.href = '{{ url_for("main.index") }}';
+          } else {
+            form.submit();
+          }
+        }, 300);
+      });
+    });
+  </script>
 {% endblock %}
