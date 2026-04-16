@@ -325,8 +325,13 @@ def delete_vendor(vendor_id):
 def order_print(order_id):
     order = Order.query.get_or_404(order_id)
     try:
-        filename = print_order(order)
-        flash(f'Enviado para impressora: {filename}', 'success')
+        method = request.form.get('print_method')
+        filename = print_order(order, method=method)
+        if method == 'pdf':
+            flash(f'PDF gerado: {filename}', 'success')
+            return redirect(url_for('main.prints', filename=filename))
+        else:
+            flash(f'Enviado para impressora: {filename}', 'success')
     except Exception as e:
         flash(f'Erro na impressão: {e}', 'danger')
     return redirect(url_for('main.index'))

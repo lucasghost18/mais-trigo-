@@ -64,9 +64,13 @@
         </table>
 
         <div class="d-flex justify-content-between mt-2">
-          <div>
+            <div>
             <form method="post" action="/orders/{{ o.id }}/print" style="display:inline-block;margin-right:8px;">
               <button class="btn btn-sm btn-outline-secondary" type="submit">Imprimir</button>
+            </form>
+            <form method="post" action="/orders/{{ o.id }}/print" style="display:inline-block;margin-right:8px;">
+              <input type="hidden" name="print_method" value="pdf">
+              <button class="btn btn-sm btn-outline-primary" type="submit">Gerar PDF</button>
             </form>
             {% if exists_map.get(o.id) and exists_map[o.id].pdf %}
               <a class="btn btn-sm btn-outline-primary" href="/prints/order_{{ o.id }}.pdf" target="_blank">Ver PDF</a>
