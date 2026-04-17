@@ -115,7 +115,6 @@
                   let opts = '<option value="">-- Outro / Selecionar --</option>';
                   data.forEach(p => {
                     let parts = [p.name || ''];
-                    if (p.sku) parts.push(p.sku);
                     if (p.manufacturer) parts.push('(' + p.manufacturer + ')');
                     const label = parts.filter(Boolean).join(' - ');
                     opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
@@ -193,7 +192,6 @@
       let opts = '<option value="">-- Outro / Selecionar --</option>';
       products.forEach(p => {
         let parts = [p.name || ''];
-        if (p.sku) parts.push(p.sku);
         if (p.manufacturer) parts.push('(' + p.manufacturer + ')');
         const label = parts.filter(Boolean).join(' - ');
         opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
