@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, jsonify
 import os
 import secrets
 from . import db
@@ -390,3 +390,32 @@ def prints(filename):
     if not os.path.isabs(pdir):
         pdir = os.path.join(current_app.root_path, pdir)
     return send_from_directory(pdir, filename)
+
+
+@bp.route('/products/search')
+def products_search():
+    q = (request.args.get('q') or '').strip()
+    if not q:
+        return jsonify([])
+    # search by SKU, name or manufacturer (case-insensitive)
+    term = f"%{q}%"
+    try:
+        matches = Product.query.filter(
+            (Product.sku.ilike(term)) | (Product.name.ilike(term)) | (Product.manufacturer.ilike(term))
+        ).order_by(Product.name).limit(50).all()
+    except Exception:
+        # fallback for DBs without ilike
+        matches = Product.query.filter(
+            (Product.sku.like(term)) | (Product.name.like(term)) | (Product.manufacturer.like(term))
+        ).order_by(Product.name).limit(50).all()
+
+    results = []
+    for p in matches:
+        results.append({
+            'id': p.id,
+            'name': p.name,
+            'sku': p.sku or '',
+            'manufacturer': p.manufacturer or '',
+            'unit_price': float(p.unit_price or 0.0)
+        })
+    return jsonify(results)

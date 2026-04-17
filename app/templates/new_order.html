@@ -81,6 +81,64 @@
     <script>
     const products = {{ products|tojson }};
     let count = 0;
+    const choicesInstances = {};
+
+    function attachSelectHandlers(select, idx) {
+      // when product changes, update price and total
+      select.addEventListener('change', function(){
+        const up = select.closest('.row').querySelector(`input[name="unit_price-${idx}"]`);
+        const sel = this.selectedOptions[0];
+        if (sel && sel.dataset && sel.dataset.price) {
+          up.value = sel.dataset.price;
+        }
+        updateOrderTotal();
+      });
+
+      // attach input listener on the Choices internal input to perform AJAX search
+      setTimeout(function(){
+        try {
+          const container = select.parentNode.querySelector('.choices');
+          const inputEl = container && container.querySelector('input.choices__input');
+          if (!inputEl) return;
+          let searchTimer = null;
+          inputEl.addEventListener('input', function(e){
+            clearTimeout(searchTimer);
+            const term = (e.target.value || '').trim();
+            if (term.length < 1) return; // skip empty
+            searchTimer = setTimeout(function(){
+              fetch('{{ url_for("main.products_search") }}?q=' + encodeURIComponent(term), {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                .then(resp => { if (!resp.ok) throw new Error('network'); return resp.json(); })
+                .then(data => {
+                  // preserve selection
+                  const selVal = select.value;
+                  // rebuild options
+                  let opts = '<option value="">-- Outro / Selecionar --</option>';
+                  data.forEach(p => {
+                    let parts = [p.name || ''];
+                    if (p.sku) parts.push(p.sku);
+                    if (p.manufacturer) parts.push('(' + p.manufacturer + ')');
+                    const label = parts.filter(Boolean).join(' - ');
+                    opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
+                  });
+                  // destroy and recreate Choices to update options safely
+                  try { if (choicesInstances[idx] && typeof choicesInstances[idx].destroy === 'function') choicesInstances[idx].destroy(); } catch(e){}
+                  select.innerHTML = opts;
+                  const newC = new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: '', placeholderValue: 'Digite para buscar produto...'});
+                  choicesInstances[idx] = newC;
+                  // restore previous selection if still present
+                  if (selVal) {
+                    select.value = selVal;
+                  }
+                  attachSelectHandlers(select, idx); // reattach handlers for new select/choices
+                })
+                .catch(err => { console.error('product search failed', err); });
+            }, 300);
+          });
+        } catch (e) {
+          // ignore
+        }
+      }, 0);
+    }
     function formatCurrencyBRL(value) {
       try {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -142,24 +200,16 @@
       });
       select.innerHTML = opts;
 
-      // initialize Choices (searchable select) if available
+      // initialize Choices (searchable select)
       try {
-        new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: '', placeholderValue: 'Digite para buscar produto...'});
+        const c = new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: '', placeholderValue: 'Digite para buscar produto...'});
+        choicesInstances[idx] = c;
       } catch (e) {
-        // Choices may not be loaded yet; harmless fallback
         console.warn('Choices not available yet', e);
       }
 
       if (product_id) select.value = product_id;
-      select.addEventListener('change', function(){
-        const up = row.querySelector(`input[name="unit_price-${idx}"]`);
-        const sel = this.selectedOptions[0];
-        if (sel && sel.dataset && sel.dataset.price) {
-          up.value = sel.dataset.price;
-        }
-        // update total when product changes
-        updateOrderTotal();
-      });
+      attachSelectHandlers(select, idx);
 
       // update total when quantity or price inputs change
       row.addEventListener('input', function(e){
