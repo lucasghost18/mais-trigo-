@@ -37,6 +37,39 @@ body {
 
 .table-responsive { border-radius: 8px; overflow: hidden; }
 
+/* Improve input focus and touch targets for better perceived performance */
+.form-control, .form-select {
+	transition: box-shadow .12s ease, transform .06s ease;
+	will-change: box-shadow, transform;
+	font-size: 0.95rem;
+}
+.form-control:focus, .form-select:focus {
+	box-shadow: 0 8px 20px rgba(13,155,215,0.08);
+	transform: translateY(-1px);
+	border-color: rgba(13,155,215,0.6);
+}
+
+.btn {
+	transition: transform .08s ease, box-shadow .12s ease;
+}
+.btn:active { transform: translateY(0); }
+
+/* Smooth scrolling for tables on mobile */
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Make choices.js items easier to tap */
+.choices__inner { min-height: 44px; }
+.choices__list--dropdown .choices__item--choice { padding: 8px 12px; }
+
+/* Reduce padding on very small screens and make forms stack neatly */
+@media (max-width: 576px) {
+	.order-card .card-body { padding: .75rem; }
+	.form-control, .form-select { font-size: 1rem; }
+	.col-6 { width: 100%; }
+	.col-3, .col-2, .col-1 { width: 100%; margin-top: .5rem; }
+	.order-header { gap: .5rem; }
+}
+
 .list-group-item form { margin-top: 8px; }
 
 @media (max-width: 768px) {
