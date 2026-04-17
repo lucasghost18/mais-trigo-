@@ -134,14 +134,17 @@
       const select = row.querySelector(`select[name="product_id-${idx}"]`);
       let opts = '<option value="">-- Outro / Selecionar --</option>';
       products.forEach(p => {
-        const label = p.manufacturer ? `${p.name} (${p.manufacturer})` : p.name;
-        opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}" data-weight="${p.weight}">${label}</option>`;
+        let parts = [p.name || ''];
+        if (p.sku) parts.push(p.sku);
+        if (p.manufacturer) parts.push('(' + p.manufacturer + ')');
+        const label = parts.filter(Boolean).join(' - ');
+        opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
       });
       select.innerHTML = opts;
 
       // initialize Choices (searchable select) if available
       try {
-        new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: ''});
+        new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: '', placeholderValue: 'Digite para buscar produto...'});
       } catch (e) {
         // Choices may not be loaded yet; harmless fallback
         console.warn('Choices not available yet', e);
