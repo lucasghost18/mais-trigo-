@@ -82,6 +82,13 @@
     const products = {{ products|tojson }};
     let count = 0;
     const choicesInstances = {};
+    function debounce(fn, wait) {
+      let t = null;
+      return function(...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), wait);
+      };
+    }
 
     function attachSelectHandlers(select, idx) {
       // when product changes, update price and total
@@ -91,7 +98,7 @@
         if (sel && sel.dataset && sel.dataset.price) {
           up.value = sel.dataset.price;
         }
-        updateOrderTotal();
+        try { if (typeof debouncedUpdate === 'function') debouncedUpdate(); else updateOrderTotal(); } catch(e) { updateOrderTotal(); }
       });
 
       // attach input listener on the Choices internal input to perform AJAX search
@@ -111,24 +118,37 @@
                 .then(data => {
                   // preserve selection
                   const selVal = select.value;
-                  // rebuild options
-                  let opts = '<option value="">-- Outro / Selecionar --</option>';
-                  data.forEach(p => {
+                  // prepare choices list (label shows name and optional manufacturer; SKU kept hidden)
+                  const choicesData = data.map(p => {
                     let parts = [p.name || ''];
                     if (p.manufacturer) parts.push('(' + p.manufacturer + ')');
                     const label = parts.filter(Boolean).join(' - ');
-                    opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
+                    return { value: String(p.id), label: label, customProperties: { price: p.unit_price, sku: p.sku } };
                   });
-                  // destroy and recreate Choices to update options safely
-                  try { if (choicesInstances[idx] && typeof choicesInstances[idx].destroy === 'function') choicesInstances[idx].destroy(); } catch(e){}
-                  select.innerHTML = opts;
-                  const newC = new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: '', placeholderValue: 'Digite para buscar produto...'});
-                  choicesInstances[idx] = newC;
+                  try {
+                    if (choicesInstances[idx] && typeof choicesInstances[idx].setChoices === 'function') {
+                      choicesInstances[idx].setChoices(choicesData, 'value', 'label', true);
+                    } else {
+                      // fallback: rebuild options and recreate Choices
+                      let opts = '<option value="">-- Outro / Selecionar --</option>';
+                      data.forEach(p => {
+                        let parts = [p.name || ''];
+                        if (p.manufacturer) parts.push('(' + p.manufacturer + ')');
+                        const label = parts.filter(Boolean).join(' - ');
+                        opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
+                      });
+                      try { if (choicesInstances[idx] && typeof choicesInstances[idx].destroy === 'function') choicesInstances[idx].destroy(); } catch(e){}
+                      select.innerHTML = opts;
+                      const newC = new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: '', placeholderValue: 'Digite para buscar produto...'});
+                      choicesInstances[idx] = newC;
+                    }
+                  } catch (e) {
+                    console.error('choices update failed', e);
+                  }
                   // restore previous selection if still present
                   if (selVal) {
-                    select.value = selVal;
+                    try { select.value = selVal; } catch(e){}
                   }
-                  attachSelectHandlers(select, idx); // reattach handlers for new select/choices
                 })
                 .catch(err => { console.error('product search failed', err); });
             }, 300);
@@ -187,16 +207,9 @@
       `;
       container.appendChild(row);
 
-      // populate select options and set handlers
+      // populate select with a single placeholder option (AJAX will load real choices on input)
       const select = row.querySelector(`select[name="product_id-${idx}"]`);
-      let opts = '<option value="">-- Outro / Selecionar --</option>';
-      products.forEach(p => {
-        let parts = [p.name || ''];
-        if (p.manufacturer) parts.push('(' + p.manufacturer + ')');
-        const label = parts.filter(Boolean).join(' - ');
-        opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
-      });
-      select.innerHTML = opts;
+      select.innerHTML = '<option value="">-- Outro / Selecionar --</option>';
 
       // initialize Choices (searchable select)
       try {
@@ -209,20 +222,18 @@
       if (product_id) select.value = product_id;
       attachSelectHandlers(select, idx);
 
-      // update total when quantity or price inputs change
-      row.addEventListener('input', function(e){
-        if (e.target && (e.target.name.startsWith('quantity-') || e.target.name.startsWith('unit_price-'))) {
-          updateOrderTotal();
-        }
-      });
+      // (total updates handled via delegated listener on container)
 
       updateCount();
     }
 
     function updateCount(){
       document.getElementById('item-count').value = document.querySelectorAll('#items .row').length;
-      updateOrderTotal();
+      try { if (typeof debouncedUpdate === 'function') debouncedUpdate(); else updateOrderTotal(); } catch(e) { updateOrderTotal(); }
     }
+
+    // debounce wrapper for updateOrderTotal
+    const debouncedUpdate = debounce(function(){ updateOrderTotal(); }, 150);
     </script>
 
     {% block scripts %}
@@ -233,6 +244,18 @@
           // add two default item rows after Choices.js is available
           addItem('',1,0.0);
           addItem('',1,0.0);
+          // delegated listener for quantity/price changes to update total
+          try {
+            const itemsContainer = document.getElementById('items');
+            if (itemsContainer) {
+              itemsContainer.addEventListener('input', function(e){
+                const name = (e.target && e.target.name) ? String(e.target.name) : '';
+                if (name.startsWith('quantity-') || name.startsWith('unit_price-')) {
+                  try { if (typeof debouncedUpdate === 'function') debouncedUpdate(); else updateOrderTotal(); } catch(ex) { updateOrderTotal(); }
+                }
+              }, {passive: true});
+            }
+          } catch (e) {}
         });
       </script>
     {% endblock %}
