@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, jsonify
 import os
 import secrets
+import re
+from sqlalchemy import func
 from . import db
 from .models import Order, OrderItem, Vendor, Product
 from .printers import print_order
@@ -399,15 +401,23 @@ def products_search():
         return jsonify([])
     # search by SKU, name or manufacturer (case-insensitive)
     term = f"%{q}%"
+    # also try matching SKU when user types without punctuation (e.g. ABC123 -> ABC-123)
+    q_plain = re.sub(r'[^A-Za-z0-9]', '', q)
+    term_plain = f"%{q_plain}%"
     try:
-        matches = Product.query.filter(
-            (Product.sku.ilike(term)) | (Product.name.ilike(term)) | (Product.manufacturer.ilike(term))
-        ).order_by(Product.name).limit(50).all()
+        # build SKU replace expression to strip common punctuation
+        sku_replace = func.replace(func.replace(func.replace(func.replace(Product.sku, '-', ''), ' ', ''), '/', ''), '.', '')
+        filters = (Product.sku.ilike(term)) | (Product.name.ilike(term)) | (Product.manufacturer.ilike(term))
+        if q_plain:
+            filters = filters | sku_replace.ilike(term_plain)
+        matches = Product.query.filter(filters).order_by(Product.name).limit(50).all()
     except Exception:
         # fallback for DBs without ilike
-        matches = Product.query.filter(
-            (Product.sku.like(term)) | (Product.name.like(term)) | (Product.manufacturer.like(term))
-        ).order_by(Product.name).limit(50).all()
+        sku_replace = func.replace(func.replace(func.replace(func.replace(Product.sku, '-', ''), ' ', ''), '/', ''), '.', '')
+        filters = (Product.sku.like(term)) | (Product.name.like(term)) | (Product.manufacturer.like(term))
+        if q_plain:
+            filters = filters | sku_replace.like(term_plain)
+        matches = Product.query.filter(filters).order_by(Product.name).limit(50).all()
 
     results = []
     for p in matches:
