@@ -50,6 +50,8 @@
       <!-- item rows will be added here -->
     </div>
 
+    <!-- product selects are handled by Choices.js; server provides `products` for initial population -->
+
     <div class="mb-3 text-end">
       <h5>Total do pedido: <span id="order-total">R$ 0,00</span></h5>
     </div>
@@ -128,6 +130,13 @@
                   try {
                     if (choicesInstances[idx] && typeof choicesInstances[idx].setChoices === 'function') {
                       choicesInstances[idx].setChoices(choicesData, 'value', 'label', true);
+                      // ensure option elements carry data-price so change handler can read it
+                      try {
+                        (data || []).forEach(function(p){
+                          var opt = select.querySelector('option[value="' + String(p.id) + '"]');
+                          if (opt) opt.dataset.price = (p.unit_price !== undefined) ? p.unit_price : '';
+                        });
+                      } catch(e) {}
                     } else {
                       // fallback: rebuild options and recreate Choices
                       let opts = '<option value="">-- Outro / Selecionar --</option>';
@@ -207,14 +216,48 @@
       `;
       container.appendChild(row);
 
-      // populate select with a single placeholder option (AJAX will load real choices on input)
+      // populate hidden select with preloaded products (for form submission) and wire text input to set product_id
       const select = row.querySelector(`select[name="product_id-${idx}"]`);
-      select.innerHTML = '<option value="">-- Outro / Selecionar --</option>';
+      let opts = '<option value="">-- Outro / Selecionar --</option>';
+      try {
+        (products || []).forEach(function(p){
+          const labelParts = [p.name || ''];
+          if (p.manufacturer) labelParts.push('(' + p.manufacturer + ')');
+          const label = labelParts.filter(Boolean).join(' - ');
+          opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
+        });
+      } catch(e) {
+        // ignore if products not defined
+      }
+      select.innerHTML = opts;
 
       // initialize Choices (searchable select)
       try {
-        const c = new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: '', placeholderValue: 'Digite para buscar produto...'});
-        choicesInstances[idx] = c;
+          const c = new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: '', placeholderValue: 'Digite para buscar produto...'});
+          choicesInstances[idx] = c;
+          // hide the original native select to avoid duplicate visible controls
+          try { select.style.display = 'none'; select.classList.add('d-none'); } catch(e) {}
+        // populate Choices initially from server-provided `products` so existing products show immediately
+        try {
+          const initial = (products || []).map(function(p){
+            let parts = [p.name || ''];
+            if (p.manufacturer) parts.push('(' + p.manufacturer + ')');
+            const label = parts.filter(Boolean).join(' - ');
+            return { value: String(p.id), label: label, customProperties: { price: p.unit_price, sku: p.sku } };
+          });
+          if (choicesInstances[idx] && typeof choicesInstances[idx].setChoices === 'function') {
+            choicesInstances[idx].setChoices(initial, 'value', 'label', true);
+            // write unit_price into option dataset for later retrieval by change handler
+            try {
+              (initial || []).forEach(function(item){
+                var opt = select.querySelector('option[value="' + String(item.value) + '"]');
+                if (opt && item.customProperties) opt.dataset.price = item.customProperties.price;
+              });
+            } catch(e) {}
+          }
+        } catch (e) {
+          // ignore population errors
+        }
       } catch (e) {
         console.warn('Choices not available yet', e);
       }
