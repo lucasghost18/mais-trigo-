@@ -1,0 +1,6 @@
+{
+  "appId": "com.maistrigo.app",
+  "appName": "MaisTrigo",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

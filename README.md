@@ -63,3 +63,32 @@ gh pr create --fill --base main --head feature/update-readme
 Observações
 - Por padrão a impressão gera arquivos texto (UTF-8) prontos para visualização/impressão.
 - Para impressoras térmicas ou ESC/POS é preciso integrar uma biblioteca específica e formatar o output
+
+Mobile / Empacotamento nativo (Capacitor)
+---------------------------------------
+
+Se você prefere empacotar o app como um aplicativo nativo instalável (Android/iOS), uma opção prática é usar o Capacitor. O fluxo recomendado:
+
+- Preparar o app como PWA (já incluí `manifest.json` e um `service-worker` básico em `app/static/pwa`).
+- Rodar o servidor Flask localmente durante desenvolvimento e apontar o wrapper nativo para o servidor (no emulador Android usar `http://10.0.2.2:8000`).
+- Executar o script auxiliar para preparar Capacitor:
+
+```bash
+chmod +x scripts/prepare_capacitor.sh
+./scripts/prepare_capacitor.sh
+```
+
+Após isso você pode adicionar a plataforma Android e abrir o projeto no Android Studio:
+
+```bash
+npx cap add android
+npx cap open android
+```
+
+Notas:
+- Capacitor exige Node.js / npm instalados.
+- Para builds de produção você precisará gerar uma versão web estática em `www` (copiar templates/estáticos) e executar `npx cap copy` antes de `npx cap open android`.
+- Integrar impressão nativa pode requerer plugins ou comunicação com um backend que entrega arquivos PDF/texto para a impressora.
+
+Icons: coloque seus ícones em `app/static/pwa/icons/` com nomes `icon-192.png` e `icon-512.png` para que o `manifest.json` funcione corretamente. Sem esses ícones, a instalação como PWA pode não mostrar um ícone adequado.
+

@@ -46,7 +46,6 @@ def _render_order_text(order):
         total_weight += line_weight
         prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
         lines.append(f'{q:>5}  {prod_name:<30} {up:>12.2f} {line_total:>10.2f}')
-    lines.append('-' * 60)
     total_weight_str = _fmt_weight_raw(total_weight)
     lines.append(f'TOTAL PESO: {total_weight_str} kg')
     lines.append(f'TOTAL: {total:.2f}')
