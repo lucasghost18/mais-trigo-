@@ -5,7 +5,7 @@
     <h3>Pedidos</h3>
     <div class="d-flex">
       <form id="order-search-form" class="d-flex me-2" method="get" action="{{ url_for('main.index') }}">
-        <input id="order-search" class="form-control form-control-sm me-2" name="q" placeholder="Buscar por nº do pedido" value="{{ request.args.get('q','') }}">
+        <input id="order-search" class="form-control form-control-sm me-2" name="q" placeholder="{% if session.get('role') == 'admin' %}Buscar por nº, cliente ou vendedor{% else %}Buscar por nº do pedido{% endif %}" value="{{ request.args.get('q','') }}">
         <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
       </form>
       <a class="btn btn-primary" href="/orders/new">Novo Pedido</a>

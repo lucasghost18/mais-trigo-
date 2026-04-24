@@ -3,10 +3,11 @@ import os
 import secrets
 import re
 from functools import wraps
+from datetime import datetime
 from sqlalchemy import func
 from . import db
 from .models import Order, OrderItem, Vendor, Product, User
-from .printers import print_order
+from .printers import print_order, print_delivery_pdf
 
 bp = Blueprint('main', __name__)
 
@@ -45,14 +46,22 @@ def get_current_vendor_id():
 def _build_orders_query():
     """Return base order query filtered by current user role."""
     q = request.args.get('q')
+    query = Order.query
     if q:
+        q = q.strip()
         try:
             order_id = int(q)
-            query = Order.query.filter_by(id=order_id)
+            query = query.filter_by(id=order_id)
         except ValueError:
-            query = Order.query
-    else:
-        query = Order.query
+            # For admin, also search by customer or vendor name
+            if is_admin():
+                from sqlalchemy import or_
+                query = query.filter(
+                    or_(
+                        Order.customer.ilike(f'%{q}%'),
+                        Order.vendor.ilike(f'%{q}%')
+                    )
+                )
     if not is_admin():
         vid = get_current_vendor_id()
         if vid:
@@ -293,11 +302,10 @@ def new_vendor():
 @login_required
 def products():
     ps = Product.query.order_by(Product.name).all()
-    return render_template('products.html', products=ps)
-
+    return render_template('products.html', products=ps, is_admin=is_admin())
 
 @bp.route('/products/new', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def new_product():
     if request.method == 'POST':
         name = (request.form.get('name') or '').strip()
@@ -351,7 +359,7 @@ def new_product():
 
 
 @bp.route('/products/<int:product_id>/edit', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def edit_product(product_id):
     product = Product.query.get_or_404(product_id)
     if request.method == 'POST':
@@ -407,7 +415,7 @@ def edit_product(product_id):
 
 
 @bp.route('/products/<int:product_id>/delete', methods=['POST'])
-@login_required
+@admin_required
 def delete_product(product_id):
     product = Product.query.get_or_404(product_id)
     # prevent deletion if used in order items
@@ -511,6 +519,103 @@ def prints(filename):
     if not os.path.isabs(pdir):
         pdir = os.path.join(current_app.root_path, pdir)
     return send_from_directory(pdir, filename)
+
+
+@bp.route('/carga')
+@admin_required
+def carga():
+    """Tela de controle de cargas (admin). Exibe pedidos filtrados com totais por vendedor."""
+    vendor_id = request.args.get('vendor_id', '').strip()
+    date_from = request.args.get('date_from', '').strip()
+    date_to = request.args.get('date_to', '').strip()
+
+    query = Order.query
+    if vendor_id:
+        try:
+            query = query.filter_by(vendor_id=int(vendor_id))
+        except ValueError:
+            pass
+    if date_from:
+        try:
+            dt_from = datetime.strptime(date_from, '%Y-%m-%d')
+            query = query.filter(Order.created_at >= dt_from)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            dt_to = datetime.strptime(date_to, '%Y-%m-%d')
+            # ajusta para o final do dia
+            dt_to = datetime.combine(dt_to.date(), datetime.time(23, 59, 59))
+            query = query.filter(Order.created_at <= dt_to)
+        except ValueError:
+            pass
+
+    orders = query.order_by(Order.created_at.desc()).all()
+
+    # totais gerais
+    total_valor = 0.0
+    total_peso = 0.0
+    # totais por vendedor
+    vendor_summary = {}
+    for o in orders:
+        vname = o.vendor_obj.name if o.vendor_obj else (o.vendor or 'Desconhecido')
+        if vname not in vendor_summary:
+            vendor_summary[vname] = {'valor': 0.0, 'peso': 0.0, 'qtd': 0}
+        o_valor = 0.0
+        o_peso = 0.0
+        for it in o.items:
+            q = it.quantity or 0
+            up = float(it.unit_price or 0.0)
+            try:
+                uw = float(getattr(it, 'unit_weight', None) if getattr(it, 'unit_weight', None) is not None else 0.0)
+            except:
+                uw = 0.0
+            if not uw and getattr(it, 'product_obj', None):
+                try:
+                    uw = float(getattr(it.product_obj, 'weight', 0.0) or 0.0)
+                except:
+                    uw = 0.0
+            o_valor += q * up
+            o_peso += q * uw
+        total_valor += o_valor
+        total_peso += o_peso
+        vendor_summary[vname]['valor'] += o_valor
+        vendor_summary[vname]['peso'] += o_peso
+        vendor_summary[vname]['qtd'] += 1
+
+    vendors = Vendor.query.order_by(Vendor.name).all()
+    return render_template('carga.html',
+                           orders=orders,
+                           vendors=vendors,
+                           vendor_id=vendor_id,
+                           date_from=date_from,
+                           date_to=date_to,
+                           total_valor=total_valor,
+                           total_peso=total_peso,
+                           vendor_summary=vendor_summary)
+
+
+@bp.route('/delivery/pdf', methods=['POST'])
+@admin_required
+def delivery_pdf():
+    """Gera PDF de comprovante de entrega para um pedido."""
+    order_id = request.form.get('order_id')
+    if not order_id:
+        flash('Pedido não informado.', 'danger')
+        return redirect(url_for('main.carga'))
+    order = Order.query.get_or_404(int(order_id))
+    outdir = current_app.config.get('PRINTER_OUTPUT_DIR', 'prints')
+    if not os.path.isabs(outdir):
+        outdir = os.path.join(current_app.root_path, outdir)
+    os.makedirs(outdir, exist_ok=True)
+    try:
+        filename = print_delivery_pdf(order, outdir)
+        flash(f'Comprovante de entrega gerado: {filename}', 'success')
+        return redirect(url_for('main.prints', filename=filename))
+    except Exception as e:
+        current_app.logger.exception('Erro ao gerar comprovante: %s', e)
+        flash(f'Erro ao gerar comprovante: {e}', 'danger')
+        return redirect(url_for('main.carga'))
 
 
 @bp.route('/products/search')

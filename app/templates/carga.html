@@ -1,0 +1,101 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+  <h3>Controle de Cargas</h3>
+  <p class="text-muted">Visualize o total de material, valores e pedidos por vendedor para organizar as cargas do caminhão.</p>
+
+  <form method="get" action="{{ url_for('main.carga') }}" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <label class="form-label">Vendedor</label>
+      <select class="form-select" name="vendor_id">
+        <option value="">Todos</option>
+        {% for v in vendors %}
+          <option value="{{ v.id }}" {% if vendor_id == v.id|string %}selected{% endif %}>{{ v.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Data inicial</label>
+      <input type="date" class="form-control" name="date_from" value="{{ date_from }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Data final</label>
+      <input type="date" class="form-control" name="date_to" value="{{ date_to }}">
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+      <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+    </div>
+  </form>
+
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card text-white bg-primary">
+        <div class="card-body">
+          <h5 class="card-title">Total Geral</h5>
+          <p class="card-text">Valor: <strong>R$ {{ '%.2f'|format(total_valor) }}</strong></p>
+          <p class="card-text">Peso: <strong>{{ total_peso|fmt_weight }} kg</strong></p>
+          <p class="card-text">Pedidos: <strong>{{ orders|length }}</strong></p>
+        </div>
+      </div>
+    </div>
+    {% for vname, data in vendor_summary.items() %}
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">{{ vname }}</h5>
+          <p class="card-text">Valor: <strong>R$ {{ '%.2f'|format(data.valor) }}</strong></p>
+          <p class="card-text">Peso: <strong>{{ data.peso|fmt_weight }} kg</strong></p>
+          <p class="card-text">Pedidos: <strong>{{ data.qtd }}</strong></p>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <h5>Pedidos</h5>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Nº</th>
+          <th>Data</th>
+          <th>Cliente</th>
+          <th>Vendedor</th>
+          <th>Valor</th>
+          <th>Peso</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+          {% set o_valor = namespace(v=0.0) %}
+          {% set o_peso = namespace(w=0.0) %}
+          {% for it in o.items %}
+            {% set q = it.quantity or 0 %}
+            {% set up = it.unit_price or 0.0 %}
+            {% set uw = it.unit_weight or (it.product_obj.weight if it.product_obj else 0.0) %}
+            {% set o_valor.v = o_valor.v + q * up %}
+            {% set o_peso.w = o_peso.w + q * uw %}
+          {% endfor %}
+          <tr>
+            <td>{{ o.id }}</td>
+            <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ o.customer }}</td>
+            <td>{{ o.vendor_obj.name if o.vendor_obj else o.vendor }}</td>
+            <td>R$ {{ '%.2f'|format(o_valor.v) }}</td>
+            <td>{{ o_peso.w|fmt_weight }} kg</td>
+            <td>
+              <form method="post" action="{{ url_for('main.delivery_pdf') }}" style="display:inline-block;">
+                <input type="hidden" name="order_id" value="{{ o.id }}">
+                <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-file-earmark-pdf me-1"></i>Comprovante</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="text-center text-muted">Nenhum pedido encontrado para os filtros selecionados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+

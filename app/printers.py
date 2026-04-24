@@ -127,6 +127,86 @@ def print_order_pdf(order, outdir):
     return filename
 
 
+def print_delivery_pdf(order, outdir):
+    """Gera um PDF simples de comprovante de entrega."""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
+    except ImportError:
+        raise RuntimeError('reportlab is required to generate PDF. Install with: pip install reportlab')
+
+    filename = f'delivery_{order.id}.pdf'
+    filepath = os.path.join(outdir, filename)
+
+    doc = SimpleDocTemplate(filepath, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    styles = getSampleStyleSheet()
+    story = []
+    story.append(Paragraph('COMPROVANTE DE ENTREGA', styles['Title']))
+    story.append(Spacer(1, 12))
+    story.append(Paragraph(f'Nº Pedido: {order.id}', styles['Normal']))
+    story.append(Paragraph(f'Cliente: {order.customer or "-"}', styles['Normal']))
+    vendor_name = (order.vendor_obj.name if getattr(order, 'vendor_obj', None) else order.vendor)
+    story.append(Paragraph(f'Vendedor: {vendor_name or "-"}', styles['Normal']))
+    story.append(Paragraph(f'Endereço: {order.address or "-"}', styles['Normal']))
+    story.append(Paragraph(f'Cidade / Tel: {order.city or "-"} / {order.phone or "-"}', styles['Normal']))
+    story.append(Paragraph(f'Data: {order.created_at.strftime("%Y-%m-%d %H:%M")}', styles['Normal']))
+    story.append(Spacer(1, 12))
+
+    data = [['QUANT', 'DESCRIÇÃO', 'PREÇO UNID', 'TOTAL']]
+    total = 0.0
+    total_weight = 0.0
+    for it in order.items:
+        q = it.quantity or 0
+        up = float(it.unit_price or 0.0)
+        try:
+            uw = float(getattr(it, 'unit_weight', None) if getattr(it, 'unit_weight', None) is not None else 0.0)
+        except:
+            uw = 0.0
+        if not uw and getattr(it, 'product_obj', None):
+            try:
+                uw = float(getattr(it.product_obj, 'weight', 0.0) or 0.0)
+            except:
+                uw = 0.0
+        line_weight = q * uw
+        line_total = q * up
+        total += line_total
+        total_weight += line_weight
+        prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
+        data.append([str(q), prod_name, f'{up:.2f}', f'{line_total:.2f}'])
+
+    # total rows
+    data.append(['', '', 'TOTAL', f'{total:.2f}'])
+    total_weight_str = (f"{(float(total_weight) if total_weight else 0.0):.3f}").rstrip('0').rstrip('.')
+    data.append(['', '', 'PESO TOTAL', f'{total_weight_str} kg'])
+
+    colWidths = [60, 330, 80, 80]
+    t = Table(data, colWidths=colWidths)
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d9bd7')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
+        ('SPAN', (0, len(data) - 2), (1, len(data) - 2)),
+        ('SPAN', (0, len(data) - 1), (1, len(data) - 1)),
+        ('ALIGN', (2, len(data) - 2), (3, len(data) - 2), 'RIGHT'),
+        ('ALIGN', (2, len(data) - 1), (3, len(data) - 1), 'RIGHT'),
+    ])
+    t.setStyle(style)
+    story.append(t)
+    story.append(Spacer(1, 30))
+    story.append(Paragraph('_____________________________________________', styles['Normal']))
+    story.append(Paragraph('Assinatura do responsável pela entrega', styles['Normal']))
+    story.append(Spacer(1, 12))
+    story.append(Paragraph('_____________________________________________', styles['Normal']))
+    story.append(Paragraph('Assinatura do cliente', styles['Normal']))
+
+    doc.build(story)
+    return filename
+
+
 def print_order(order, method=None):
     """Renderiza o pedido e salva como texto ou PDF, ou envia para impressora via lpr.
 
