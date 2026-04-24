@@ -1,0 +1,11 @@
+{
+  "appId": "com.maistrigo.app",
+  "appName": "MaisTrigo",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://depend-enhancing-chair-grace.trycloudflare.com",
+    "cleartext": false
+  }
+}
+

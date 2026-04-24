@@ -1,0 +1,44 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+  <div class="d-flex justify-content-between mb-3">
+    <h3>Pedidos</h3>
+    <div class="d-flex">
+      <form id="order-search-form" class="d-flex me-2" method="get" action="{{ url_for('main.index') }}">
+        <input id="order-search" class="form-control form-control-sm me-2" name="q" placeholder="Buscar por nº do pedido" value="{{ request.args.get('q','') }}">
+        <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
+      </form>
+      <a class="btn btn-primary" href="/orders/new">Novo Pedido</a>
+    </div>
+  </div>
+
+  <div id="orders-list">
+    {% include '_orders_list.html' %}
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var input = document.getElementById('order-search');
+      var list = document.getElementById('orders-list');
+      var timer = null;
+      var searchUrl = '{{ url_for("main.orders_search") }}';
+      function updateList(q) {
+        fetch(searchUrl + '?q=' + encodeURIComponent(q || ''), {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+          .then(function(resp){ if (!resp.ok) throw new Error('Network error'); return resp.text(); })
+          .then(function(html){ if (list) list.innerHTML = html; })
+          .catch(function(err){ console.error('Search error', err); });
+      }
+      if (!input) return;
+      input.addEventListener('input', function() {
+        clearTimeout(timer);
+        timer = setTimeout(function() {
+          updateList(input.value.trim());
+        }, 300);
+      });
+    });
+  </script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+  <h3>{{ 'Editar Produto' if product else 'Novo Produto' }}</h3>
+  <form method="post" id="product-form" action="{{ url_for('main.edit_product', product_id=product.id) if product else url_for('main.new_product') }}">
+    <div class="mb-3">
+      <label class="form-label">Nome</label>
+      <input class="form-control" name="name" required value="{{ product.name if product else (form.get('name') if form else '') }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Fabricante</label>
+      <input class="form-control" name="manufacturer" placeholder="Fabricante (opcional)" value="{{ product.manufacturer if product else (form.get('manufacturer') if form else '') }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Peso (kg)</label>
+      <input class="form-control" name="weight" type="number" step="0.001" min="0" value="{{ product.weight if product else (form.get('weight') if form else '') }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Código de referência</label>
+      <input class="form-control" name="sku" placeholder="Código de referência (pode deixar em branco)" value="{{ product.sku if product else (form.get('sku') if form else '') }}">
+      <div class="form-text">Se não informar um código, será oferecida a opção de criar um código aleatório.</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Preço unid</label>
+      <input class="form-control" name="unit_price" type="number" step="0.01" min="0" value="{{ product.unit_price if product else (form.get('unit_price') if form else '') }}">
+    </div>
+    <button class="btn btn-primary" type="submit">Salvar</button>
+    <a class="btn btn-link" href="{{ url_for('main.products') }}">Voltar</a>
+  </form>
+
+  <script>
+    document.getElementById('product-form').addEventListener('submit', function(e){
+      var form = this;
+      var skuEl = form.querySelector('input[name="sku"]');
+      if (!skuEl) return;
+      var sku = (skuEl.value || '').trim();
+      if (!sku) {
+        e.preventDefault();
+        var ok = confirm('Código de referência não foi criado. Deseja criar um aleatório?');
+        if (ok) {
+          var manufacturer = (form.querySelector('input[name="manufacturer"]').value || '').trim();
+          var prefix = 'PRD';
+          if (manufacturer) {
+            prefix = manufacturer.replace(/\s+/g,'').toUpperCase().slice(0,3);
+          }
+          var rand = Math.random().toString(36).substring(2,8).toUpperCase();
+          var newSku = prefix + '-' + rand;
+          skuEl.value = newSku;
+          form.submit();
+        } else {
+          alert('Por favor, insira um código de referência ou permita gerar um aleatório.');
+        }
+      }
+    });
+  </script>
+{% endblock %}

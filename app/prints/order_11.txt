@@ -1,0 +1,17 @@
+Pedido: #11
+Cliente: teste
+Vendedor: Vendedor Teste
+Endereço: .....
+Cidade: abc    Tel: -
+CNPJ: -
+Observação: -
+Data: 2026-04-16 18:06
+------------------------------------------------------------
+QUANT  DESCRIÇÃO                        PESO(kg)    UNIT.    TOTAL
+------------------------------------------------------------
+    6  FT DONA BENTA 25KG                    150    88.00   528.00
+   16  TestProd1                               0     1.23    19.68
+------------------------------------------------------------
+TOTAL PESO: 150 kg
+TOTAL: 547.68
+FIM

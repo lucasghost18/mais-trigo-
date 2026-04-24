@@ -1,0 +1,15 @@
+Pedido: #8
+Cliente: Padaria Auto
+Vendedor: Vendedor Auto
+Endereço: Rua Auto, 1
+Cidade: CidadeAuto    Tel: (00)00000-0000
+CNPJ: 00.000.000/0000-00
+Observação: Teste auto-print
+Data: 2026-04-16 12:46
+------------------------------------------------------------
+QUANT  DESCRIÇÃO                         UNIT.    TOTAL
+------------------------------------------------------------
+    5  Farinha de Trigo 1kg               4.00    20.00
+------------------------------------------------------------
+TOTAL: 20.00
+FIM

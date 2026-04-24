@@ -1,0 +1,16 @@
+Pedido: #10000
+Cliente: Cliente Teste
+Vendedor: Vendedor X
+Endereço: Rua Teste, 123
+Cidade: Cidade    Tel: (00)00000-0000
+CNPJ: 00.000.000/0000-00
+Observação: Sem lactose
+Data: 2026-04-16 09:58
+------------------------------------------------------------
+QUANT  DESCRIÇÃO                         UNIT.    TOTAL
+------------------------------------------------------------
+   10  Pão                                0.25     2.50
+    2  Bolo                               5.00    10.00
+------------------------------------------------------------
+TOTAL: 12.50
+FIM

@@ -1,0 +1,15 @@
+Pedido: #7
+Cliente: Padaria Web 2
+Vendedor: Vendedor Z
+Endereço: Rua Teste 2, 20
+Cidade: Cidade    Tel: (11)98765-4321
+CNPJ: 00.000.000/0000-00
+Observação: Sem açúcar
+Data: 2026-04-16 12:36
+------------------------------------------------------------
+QUANT  DESCRIÇÃO                         UNIT.    TOTAL
+------------------------------------------------------------
+    3  Massa para Bolo                    7.00    21.00
+------------------------------------------------------------
+TOTAL: 21.00
+FIM

@@ -1,0 +1,311 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+{% endblock %}
+
+{% block content %}
+  <h3>Novo Pedido</h3>
+  <form method="post" id="order-form">
+    <div class="mb-3 row">
+      <div class="col-md-3">
+        <label class="form-label">Cliente</label>
+        <input class="form-control" name="customer" placeholder="Nome do cliente">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Vendedor</label>
+        {% if is_admin %}
+        <select class="form-select" name="vendor_id" id="vendor-select">
+          <option value="">-- Outro / Sem vendedor --</option>
+          {% for v in vendors %}
+            <option value="{{ v.id }}">{{ v.name }}</option>
+          {% endfor %}
+        </select>
+        <input class="form-control mt-2" name="vendor" id="vendor-other" placeholder="Nome do vendedor (se não selecionado)">
+        {% else %}
+        <input type="hidden" name="vendor_id" value="{{ current_vendor_id }}">
+        <input class="form-control" readonly value="{% for v in vendors %}{% if v.id == current_vendor_id %}{{ v.name }}{% endif %}{% endfor %}">
+        {% endif %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Endereço</label>
+        <input class="form-control" name="address" placeholder="Rua, nº, bairro">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Cidade</label>
+        <input class="form-control" name="city" placeholder="Cidade - UF">
+      </div>
+    </div>
+    <div class="mb-3 row">
+      <div class="col-md-4">
+        <label class="form-label">Telefone</label>
+        <input class="form-control" name="phone" placeholder="(00) 00000-0000">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">CNPJ</label>
+        <input class="form-control" name="cnpj" placeholder="00.000.000/0000-00">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Observação</label>
+        <input class="form-control" name="notes" placeholder="Observações do pedido">
+      </div>
+    </div>
+
+    <div id="items">
+      <!-- item rows will be added here -->
+    </div>
+
+    <!-- product selects are handled by Choices.js; server provides `products` for initial population -->
+
+    <div class="mb-3 text-end">
+      <h5>Total do pedido: <span id="order-total">R$ 0,00</span></h5>
+    </div>
+
+    <input type="hidden" id="item-count" name="item-count" value="0">
+
+    <div class="mb-3">
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addItem()">Adicionar item</button>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Opção de impressão</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="print_method" id="pm_pdf" value="pdf" checked>
+          <label class="form-check-label" for="pm_pdf">Gerar PDF (A4)</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="print_method" id="pm_lpr" value="lpr">
+          <label class="form-check-label" for="pm_lpr">Enviar para impressora (lpr)</label>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Criar Pedido</button>
+    <a class="btn btn-link" href="/">Voltar</a>
+  </form>
+
+    <script>
+    const products = {{ products|tojson }};
+    let count = 0;
+    const choicesInstances = {};
+    function debounce(fn, wait) {
+      let t = null;
+      return function(...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), wait);
+      };
+    }
+
+    function attachSelectHandlers(select, idx) {
+      // when product changes, update price and total
+      select.addEventListener('change', function(){
+        const up = select.closest('.row').querySelector(`input[name="unit_price-${idx}"]`);
+        const sel = this.selectedOptions[0];
+        if (sel && sel.dataset && sel.dataset.price) {
+          up.value = sel.dataset.price;
+        }
+        try { if (typeof debouncedUpdate === 'function') debouncedUpdate(); else updateOrderTotal(); } catch(e) { updateOrderTotal(); }
+      });
+
+      // attach input listener on the Choices internal input to perform AJAX search
+      setTimeout(function(){
+        try {
+          const container = select.parentNode.querySelector('.choices');
+          const inputEl = container && container.querySelector('input.choices__input');
+          if (!inputEl) return;
+          let searchTimer = null;
+          inputEl.addEventListener('input', function(e){
+            clearTimeout(searchTimer);
+            const term = (e.target.value || '').trim();
+            if (term.length < 1) return; // skip empty
+            searchTimer = setTimeout(function(){
+              fetch('{{ url_for("main.products_search") }}?q=' + encodeURIComponent(term), {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                .then(resp => { if (!resp.ok) throw new Error('network'); return resp.json(); })
+                .then(data => {
+                  // preserve selection
+                  const selVal = select.value;
+                  // prepare choices list (label shows name and optional manufacturer; SKU kept hidden)
+                  const choicesData = data.map(p => {
+                    let parts = [p.name || ''];
+                    if (p.manufacturer) parts.push('(' + p.manufacturer + ')');
+                    const label = parts.filter(Boolean).join(' - ');
+                    return { value: String(p.id), label: label, customProperties: { price: p.unit_price, sku: p.sku } };
+                  });
+                  try {
+                    if (choicesInstances[idx] && typeof choicesInstances[idx].setChoices === 'function') {
+                      choicesInstances[idx].setChoices(choicesData, 'value', 'label', true);
+                      // ensure option elements carry data-price so change handler can read it
+                      try {
+                        (data || []).forEach(function(p){
+                          var opt = select.querySelector('option[value="' + String(p.id) + '"]');
+                          if (opt) opt.dataset.price = (p.unit_price !== undefined) ? p.unit_price : '';
+                        });
+                      } catch(e) {}
+                    } else {
+                      // fallback: rebuild options and recreate Choices
+                      let opts = '<option value="">-- Outro / Selecionar --</option>';
+                      data.forEach(p => {
+                        let parts = [p.name || ''];
+                        if (p.manufacturer) parts.push('(' + p.manufacturer + ')');
+                        const label = parts.filter(Boolean).join(' - ');
+                        opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
+                      });
+                      try { if (choicesInstances[idx] && typeof choicesInstances[idx].destroy === 'function') choicesInstances[idx].destroy(); } catch(e){}
+                      select.innerHTML = opts;
+                      const newC = new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: '', placeholderValue: 'Digite para buscar produto...'});
+                      choicesInstances[idx] = newC;
+                    }
+                  } catch (e) {
+                    console.error('choices update failed', e);
+                  }
+                  // restore previous selection if still present
+                  if (selVal) {
+                    try { select.value = selVal; } catch(e){}
+                  }
+                })
+                .catch(err => { console.error('product search failed', err); });
+            }, 300);
+          });
+        } catch (e) {
+          // ignore
+        }
+      }, 0);
+    }
+    function formatCurrencyBRL(value) {
+      try {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+      } catch (e) {
+        return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
+      }
+    }
+
+    function updateOrderTotal() {
+      var total = 0.0;
+      var rows = document.querySelectorAll('#items .row');
+      rows.forEach(function(row) {
+        var qtyInput = row.querySelector('input[name^="quantity-"]');
+        var priceInput = row.querySelector('input[name^="unit_price-"]');
+        var q = 0, p = 0;
+        if (qtyInput) {
+          var qv = (qtyInput.value || '').toString().replace(',', '.');
+          q = parseFloat(qv) || 0;
+        }
+        if (priceInput) {
+          var pv = (priceInput.value || '').toString().replace(',', '.');
+          p = parseFloat(pv) || 0;
+        }
+        total += q * p;
+      });
+      var el = document.getElementById('order-total');
+      if (el) el.textContent = formatCurrencyBRL(total);
+    }
+    function addItem(product_id = '', quantity = 1, unit_price = 0.0) {
+      const container = document.getElementById('items');
+      const idx = count++;
+      const row = document.createElement('div');
+      row.className = 'row mb-2';
+      row.innerHTML = `
+        <div class="col-6">
+          <select class="form-select product-select" name="product_id-${idx}"></select>
+        </div>
+        <div class="col-2">
+          <input class="form-control" name="quantity-${idx}" placeholder="Quantidade" value="${quantity}">
+        </div>
+        <div class="col-3">
+          <input class="form-control" name="unit_price-${idx}" placeholder="Preço unid" value="${unit_price}">
+        </div>
+        <div class="col-1">
+          <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.row').remove(); updateCount()">×</button>
+        </div>
+      `;
+      container.appendChild(row);
+
+      // populate hidden select with preloaded products (for form submission) and wire text input to set product_id
+      const select = row.querySelector(`select[name="product_id-${idx}"]`);
+      let opts = '<option value="">-- Outro / Selecionar --</option>';
+      try {
+        (products || []).forEach(function(p){
+          const labelParts = [p.name || ''];
+          if (p.manufacturer) labelParts.push('(' + p.manufacturer + ')');
+          const label = labelParts.filter(Boolean).join(' - ');
+          opts += `<option value="${p.id}" data-price="${p.unit_price}" data-sku="${p.sku}" data-manufacturer="${p.manufacturer}">${label}</option>`;
+        });
+      } catch(e) {
+        // ignore if products not defined
+      }
+      select.innerHTML = opts;
+
+      // initialize Choices (searchable select)
+      try {
+          const c = new Choices(select, {searchEnabled: true, shouldSort: false, itemSelectText: '', placeholderValue: 'Digite para buscar produto...'});
+          choicesInstances[idx] = c;
+          // hide the original native select to avoid duplicate visible controls
+          try { select.style.display = 'none'; select.classList.add('d-none'); } catch(e) {}
+        // populate Choices initially from server-provided `products` so existing products show immediately
+        try {
+          const initial = (products || []).map(function(p){
+            let parts = [p.name || ''];
+            if (p.manufacturer) parts.push('(' + p.manufacturer + ')');
+            const label = parts.filter(Boolean).join(' - ');
+            return { value: String(p.id), label: label, customProperties: { price: p.unit_price, sku: p.sku } };
+          });
+          if (choicesInstances[idx] && typeof choicesInstances[idx].setChoices === 'function') {
+            choicesInstances[idx].setChoices(initial, 'value', 'label', true);
+            // write unit_price into option dataset for later retrieval by change handler
+            try {
+              (initial || []).forEach(function(item){
+                var opt = select.querySelector('option[value="' + String(item.value) + '"]');
+                if (opt && item.customProperties) opt.dataset.price = item.customProperties.price;
+              });
+            } catch(e) {}
+          }
+        } catch (e) {
+          // ignore population errors
+        }
+      } catch (e) {
+        console.warn('Choices not available yet', e);
+      }
+
+      if (product_id) select.value = product_id;
+      attachSelectHandlers(select, idx);
+
+      // (total updates handled via delegated listener on container)
+
+      updateCount();
+    }
+
+    function updateCount(){
+      document.getElementById('item-count').value = document.querySelectorAll('#items .row').length;
+      try { if (typeof debouncedUpdate === 'function') debouncedUpdate(); else updateOrderTotal(); } catch(e) { updateOrderTotal(); }
+    }
+
+    // debounce wrapper for updateOrderTotal
+    const debouncedUpdate = debounce(function(){ updateOrderTotal(); }, 150);
+    </script>
+
+    {% block scripts %}
+      {{ super() }}
+      <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          // add two default item rows after Choices.js is available
+          addItem('',1,0.0);
+          addItem('',1,0.0);
+          // delegated listener for quantity/price changes to update total
+          try {
+            const itemsContainer = document.getElementById('items');
+            if (itemsContainer) {
+              itemsContainer.addEventListener('input', function(e){
+                const name = (e.target && e.target.name) ? String(e.target.name) : '';
+                if (name.startsWith('quantity-') || name.startsWith('unit_price-')) {
+                  try { if (typeof debouncedUpdate === 'function') debouncedUpdate(); else updateOrderTotal(); } catch(ex) { updateOrderTotal(); }
+                }
+              }, {passive: true});
+            }
+          } catch (e) {}
+        });
+      </script>
+    {% endblock %}
+
+{% endblock %}
