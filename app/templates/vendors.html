@@ -3,13 +3,15 @@
 {% block content %}
   <div class="d-flex justify-content-between mb-3">
     <h3>Vendedores</h3>
+    {% if is_admin %}
     <a class="btn btn-primary" href="{{ url_for('main.new_vendor') }}">Novo Vendedor</a>
+    {% endif %}
   </div>
 
   <div class="table-responsive">
     <table class="table table-sm table-hover align-middle">
       <thead>
-        <tr><th>Nome</th><th>Telefone</th><th>Email</th><th>Usuário</th><th>Ações</th></tr>
+        <tr><th>Nome</th><th>Telefone</th><th>Email</th><th>Usuário</th>{% if is_admin %}<th>Ações</th>{% endif %}</tr>
       </thead>
       <tbody>
         {% for v in vendors %}
@@ -18,12 +20,14 @@
             <td>{{ v.phone }}</td>
             <td>{{ v.email }}</td>
             <td>{% if v.user %}{{ v.user.username }}{% else %}-{% endif %}</td>
+            {% if is_admin %}
             <td>
               <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.edit_vendor', vendor_id=v.id) }}">Editar</a>
               <form method="post" action="{{ url_for('main.delete_vendor', vendor_id=v.id) }}" style="display:inline-block; margin-left:6px;" onsubmit="return confirm('Remover vendedor {{ v.name }}?');">
                 <button class="btn btn-sm btn-danger" type="submit">Excluir</button>
               </form>
             </td>
+            {% endif %}
           </tr>
         {% endfor %}
       </tbody>
@@ -31,3 +35,4 @@
   </div>
 
 {% endblock %}
+

@@ -23,6 +23,17 @@ def login_required(view):
     return wrapped_view
 
 
+def admin_required(view):
+    @wraps(view)
+    @login_required
+    def wrapped_view(**kwargs):
+        if not is_admin():
+            flash('Acesso restrito a administradores.', 'danger')
+            return redirect(url_for('main.index'))
+        return view(**kwargs)
+    return wrapped_view
+
+
 def is_admin():
     return session.get('role') == 'admin'
 
@@ -243,27 +254,33 @@ def new_order():
 @login_required
 def vendors():
     vs = Vendor.query.order_by(Vendor.name).all()
-    return render_template('vendors.html', vendors=vs)
+    return render_template('vendors.html', vendors=vs, is_admin=is_admin())
 
 
 @bp.route('/vendors/new', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def new_vendor():
     if request.method == 'POST':
         name = request.form.get('name')
         phone = request.form.get('phone')
         email = request.form.get('email')
+        username = (request.form.get('username') or '').strip()
+        password = (request.form.get('password') or '').strip()
+        auto_password = request.form.get('auto_password')
+        if not username:
+            flash('Nome de usuário é obrigatório.', 'danger')
+            return render_template('vendor_form.html', form=request.form)
+        if auto_password:
+            password = secrets.token_urlsafe(8)
+        if not password:
+            flash('Senha é obrigatória (ou marque a opção de gerar automaticamente).', 'danger')
+            return render_template('vendor_form.html', form=request.form)
+        if User.query.filter_by(username=username).first():
+            flash('Nome de usuário já existe. Escolha outro.', 'danger')
+            return render_template('vendor_form.html', form=request.form)
         v = Vendor(name=name, phone=phone, email=email)
         db.session.add(v)
         db.session.flush()  # get v.id before commit
-        # generate username and password
-        base = ''.join(ch.lower() for ch in (name or 'vendedor') if ch.isalnum() or ch == ' ').replace(' ', '.')[:20]
-        username = base
-        counter = 1
-        while User.query.filter_by(username=username).first():
-            username = f"{base}.{counter}"
-            counter += 1
-        password = str(secrets.randbelow(9000) + 1000)  # 4-digit numeric
         u = User(username=username, password=password, role='vendor', vendor_id=v.id)
         db.session.add(u)
         db.session.commit()
@@ -409,7 +426,7 @@ def delete_product(product_id):
 
 
 @bp.route('/vendors/<int:vendor_id>/edit', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def edit_vendor(vendor_id):
     vendor = Vendor.query.get_or_404(vendor_id)
     if request.method == 'POST':
@@ -435,7 +452,7 @@ def edit_vendor(vendor_id):
 
 
 @bp.route('/vendors/<int:vendor_id>/delete', methods=['POST'])
-@login_required
+@admin_required
 def delete_vendor(vendor_id):
     vendor = Vendor.query.get_or_404(vendor_id)
     used = Order.query.filter_by(vendor_id=vendor_id).count()

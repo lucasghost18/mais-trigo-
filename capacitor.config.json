@@ -1,10 +1,10 @@
 {
   "appId": "com.maistrigo.app",
-  "appName": "MaisTrigo",
+  "appName": "Mais Trigo",
   "webDir": "www",
   "bundledWebRuntime": false,
   "server": {
-    "url": "https://depend-enhancing-chair-grace.trycloudflare.com",
+    "url": "https://geometry-situated-agreement-tone.trycloudflare.com",
     "cleartext": false
   }
 }

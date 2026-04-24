@@ -15,6 +15,41 @@
       <label class="form-label">Email</label>
       <input class="form-control" name="email" type="email" value="{{ vendor.email if vendor else (form.get('email') if form else '') }}">
     </div>
+    {% if not vendor %}
+    <div class="mb-3">
+      <label class="form-label">Usuário de acesso <span class="text-danger">*</span></label>
+      <input class="form-control" name="username" required placeholder="Ex: joao.silva" value="{{ form.get('username') if form else '' }}">
+      <div class="form-text">O vendedor usará este nome para fazer login.</div>
+    </div>
+    <div class="mb-3 form-check">
+      <input class="form-check-input" type="checkbox" id="auto-password" name="auto_password" value="1" {% if form and form.get('auto_password') %}checked{% endif %}>
+      <label class="form-check-label" for="auto-password">Gerar senha automaticamente</label>
+    </div>
+    <div class="mb-3" id="password-field">
+      <label class="form-label">Senha <span class="text-danger">*</span></label>
+      <input class="form-control" type="password" name="password" id="password-input" placeholder="Digite a senha">
+      <div class="form-text">Escolha uma senha segura para o vendedor.</div>
+    </div>
+    <script>
+      (function() {
+        var autoCb = document.getElementById('auto-password');
+        var pwField = document.getElementById('password-field');
+        var pwInput = document.getElementById('password-input');
+        function toggle() {
+          if (autoCb.checked) {
+            pwField.style.display = 'none';
+            pwInput.required = false;
+            pwInput.value = '';
+          } else {
+            pwField.style.display = 'block';
+            pwInput.required = true;
+          }
+        }
+        autoCb.addEventListener('change', toggle);
+        toggle();
+      })();
+    </script>
+    {% endif %}
     {% if vendor and user %}
     <div class="mb-3">
       <label class="form-label">Usuário de acesso</label>
@@ -22,10 +57,11 @@
     </div>
     <div class="mb-3">
       <label class="form-label">Nova senha (deixe em branco para manter)</label>
-      <input class="form-control" name="new_password" type="text" placeholder="Digite nova senha">
+      <input class="form-control" name="new_password" type="password" placeholder="Digite nova senha">
     </div>
     {% endif %}
     <button class="btn btn-primary" type="submit">Salvar</button>
     <a class="btn btn-link" href="{{ url_for('main.vendors') }}">Voltar</a>
   </form>
 {% endblock %}
+
