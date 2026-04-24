@@ -59,10 +59,31 @@
         <input class="form-check-input" type="checkbox" id="select-all">
         <label class="form-check-label" for="select-all"><strong>Selecionar todos</strong></label>
       </div>
-      <button type="submit" class="btn btn-primary" id="generate-btn" disabled>
+      <button type="button" class="btn btn-primary" id="generate-btn" disabled data-bs-toggle="modal" data-bs-target="#confirmModal">
         <i class="bi bi-file-earmark-pdf me-1"></i>Gerar Comprovante
       </button>
     </div>
+
+    <!-- Modal de Confirmação -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="confirmModalLabel">Confirmar Emissão</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <p>Gostaria de emitir comprovante de carga e excluir o pedido da área de pedidos?</p>
+            <input type="hidden" name="delete_orders" id="delete-orders-input" value="0">
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-danger" id="btn-sim-excluir">Sim, excluir pedidos</button>
+            <button type="submit" class="btn btn-primary" id="btn-nao-excluir">Não, apenas gerar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="table-responsive">
       <table class="table table-sm table-hover align-middle">
         <thead>
@@ -111,6 +132,9 @@
       var selectAll = document.getElementById('select-all');
       var checks = document.querySelectorAll('.order-check');
       var generateBtn = document.getElementById('generate-btn');
+      var deleteInput = document.getElementById('delete-orders-input');
+      var btnSim = document.getElementById('btn-sim-excluir');
+      var btnNao = document.getElementById('btn-nao-excluir');
 
       function updateBtn() {
         var any = document.querySelectorAll('.order-check:checked').length > 0;
@@ -134,6 +158,18 @@
           updateBtn();
         });
       });
+
+      // Configura o campo hidden ao clicar nos botões do modal
+      if (btnSim) {
+        btnSim.addEventListener('click', function() {
+          deleteInput.value = '1';
+        });
+      }
+      if (btnNao) {
+        btnNao.addEventListener('click', function() {
+          deleteInput.value = '0';
+        });
+      }
     });
   </script>
 {% endblock %}

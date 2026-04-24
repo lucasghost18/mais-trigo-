@@ -621,11 +621,25 @@ def delivery_pdf():
     try:
         filename = print_delivery_pdf(orders, outdir)
         flash(f'Comprovante de entrega gerado: {filename}', 'success')
-        return redirect(url_for('main.prints', filename=filename))
     except Exception as e:
         current_app.logger.exception('Erro ao gerar comprovante: %s', e)
         flash(f'Erro ao gerar comprovante: {e}', 'danger')
         return redirect(url_for('main.carga'))
+
+    # Verifica se deve excluir os pedidos
+    delete_orders = request.form.get('delete_orders') == '1'
+    if delete_orders:
+        try:
+            for order in orders:
+                db.session.delete(order)
+            db.session.commit()
+            flash(f'{len(orders)} pedido(s) removido(s) da área de pedidos.', 'info')
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.exception('Erro ao excluir pedidos: %s', e)
+            flash(f'Erro ao excluir pedidos: {e}', 'danger')
+
+    return redirect(url_for('main.prints', filename=filename))
 
 
 @bp.route('/products/search')
