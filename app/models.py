@@ -14,6 +14,7 @@ class Order(db.Model):
     phone = db.Column(db.String(50))
     cnpj = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    delivered = db.Column(db.Boolean, default=False)
     items = db.relationship('OrderItem', backref='order', cascade='all, delete-orphan', lazy=True)
 
 

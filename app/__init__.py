@@ -52,6 +52,10 @@ def create_app(test_config=None):
             if 'vendor_id' not in order_cols:
                 if db.engine.url.drivername == 'sqlite':
                     db.session.execute(text(f'ALTER TABLE "{order_table}" ADD COLUMN vendor_id INTEGER'))
+            # add delivered column to order table if missing
+            if 'delivered' not in order_cols:
+                if db.engine.url.drivername == 'sqlite':
+                    db.session.execute(text(f'ALTER TABLE "{order_table}" ADD COLUMN delivered BOOLEAN DEFAULT 0'))
             db.session.commit()
 
             # order items: add product_id column if missing

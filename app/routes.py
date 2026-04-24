@@ -62,7 +62,9 @@ def _build_orders_query():
                         Order.vendor.ilike(f'%{q}%')
                     )
                 )
-    if not is_admin():
+    if is_admin():
+        query = query.filter_by(delivered=False)
+    else:
         vid = get_current_vendor_id()
         if vid:
             query = query.filter_by(vendor_id=vid)
@@ -529,7 +531,7 @@ def carga():
     date_from = request.args.get('date_from', '').strip()
     date_to = request.args.get('date_to', '').strip()
 
-    query = Order.query
+    query = Order.query.filter_by(delivered=False)
     if vendor_id:
         try:
             query = query.filter_by(vendor_id=int(vendor_id))
@@ -626,18 +628,18 @@ def delivery_pdf():
         flash(f'Erro ao gerar comprovante: {e}', 'danger')
         return redirect(url_for('main.carga'))
 
-    # Verifica se deve excluir os pedidos
+    # Verifica se deve excluir os pedidos (marca como entregue para ocultar do admin)
     delete_orders = request.form.get('delete_orders') == '1'
     if delete_orders:
         try:
             for order in orders:
-                db.session.delete(order)
+                order.delivered = True
             db.session.commit()
-            flash(f'{len(orders)} pedido(s) removido(s) da área de pedidos.', 'info')
+            flash(f'{len(orders)} pedido(s) removido(s) da área de pedidos do administrador.', 'info')
         except Exception as e:
             db.session.rollback()
-            current_app.logger.exception('Erro ao excluir pedidos: %s', e)
-            flash(f'Erro ao excluir pedidos: {e}', 'danger')
+            current_app.logger.exception('Erro ao marcar pedidos como entregues: %s', e)
+            flash(f'Erro ao atualizar pedidos: {e}', 'danger')
 
     return redirect(url_for('main.prints', filename=filename))
 
