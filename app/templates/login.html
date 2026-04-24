@@ -23,10 +23,18 @@
       width: 100%;
       max-width: 380px;
     }
-    .login-logo {
-      font-size: 3rem;
+    .login-logo-wrap {
       text-align: center;
       margin-bottom: 0.5rem;
+    }
+    .login-logo-wrap img {
+      max-width: 80px;
+      max-height: 80px;
+      width: auto;
+      height: auto;
+      display: inline-block;
+      border-radius: 10px;
+      object-fit: contain;
     }
     .login-title {
       font-weight: 700;
@@ -53,7 +61,9 @@
 </head>
 <body>
   <div class="login-card">
-    <img src="/static/logo.png" class="login-logo-img" alt="Mais Trigo">
+    <div class="login-logo-wrap">
+      <img src="/static/logo.png" alt="Mais Trigo">
+    </div>
     <h4 class="login-title">Mais Trigo</h4>
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
