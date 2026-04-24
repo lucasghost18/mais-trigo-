@@ -159,8 +159,9 @@ def print_delivery_pdf(orders, outdir):
     story.append(Spacer(1, 12))
 
     # Build items list: only quantity, product, weight
-    items_data = [['QUANTIDADE', 'PRODUTO', 'PESO TOTAL']]
-    total_peso = 0.0
+    # Group same products together and sum quantities/weights
+    from collections import defaultdict
+    grouped = defaultdict(lambda: {'quantity': 0, 'weight': 0.0})
 
     for order in orders:
         for it in order.items:
@@ -175,13 +176,20 @@ def print_delivery_pdf(orders, outdir):
                 except:
                     uw = 0.0
             line_weight = q * uw
-            total_peso += line_weight
             prod_name = it.product or (it.product_obj.name if getattr(it, 'product_obj', None) else '')
-            items_data.append([
-                str(q),
-                prod_name,
-                f'{line_weight:.2f} kg'
-            ])
+            grouped[prod_name]['quantity'] += q
+            grouped[prod_name]['weight'] += line_weight
+
+    items_data = [['QUANTIDADE', 'PRODUTO', 'PESO TOTAL']]
+    total_peso = 0.0
+
+    for prod_name, data in grouped.items():
+        total_peso += data['weight']
+        items_data.append([
+            str(data['quantity']),
+            prod_name,
+            f"{data['weight']:.2f} kg"
+        ])
 
     # Total row
     items_data.append(['', 'TOTAL GERAL', f'{total_peso:.2f} kg'])
