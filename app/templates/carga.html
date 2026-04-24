@@ -53,49 +53,88 @@
   </div>
 
   <h5>Pedidos</h5>
-  <div class="table-responsive">
-    <table class="table table-sm table-hover align-middle">
-      <thead>
-        <tr>
-          <th>Nº</th>
-          <th>Data</th>
-          <th>Cliente</th>
-          <th>Vendedor</th>
-          <th>Valor</th>
-          <th>Peso</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for o in orders %}
-          {% set o_valor = namespace(v=0.0) %}
-          {% set o_peso = namespace(w=0.0) %}
-          {% for it in o.items %}
-            {% set q = it.quantity or 0 %}
-            {% set up = it.unit_price or 0.0 %}
-            {% set uw = it.unit_weight or (it.product_obj.weight if it.product_obj else 0.0) %}
-            {% set o_valor.v = o_valor.v + q * up %}
-            {% set o_peso.w = o_peso.w + q * uw %}
-          {% endfor %}
+  <form method="post" action="{{ url_for('main.delivery_pdf') }}" id="delivery-form">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="select-all">
+        <label class="form-check-label" for="select-all"><strong>Selecionar todos</strong></label>
+      </div>
+      <button type="submit" class="btn btn-primary" id="generate-btn" disabled>
+        <i class="bi bi-file-earmark-pdf me-1"></i>Gerar Comprovante
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle">
+        <thead>
           <tr>
-            <td>{{ o.id }}</td>
-            <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-            <td>{{ o.customer }}</td>
-            <td>{{ o.vendor_obj.name if o.vendor_obj else o.vendor }}</td>
-            <td>R$ {{ '%.2f'|format(o_valor.v) }}</td>
-            <td>{{ o_peso.w|fmt_weight }} kg</td>
-            <td>
-              <form method="post" action="{{ url_for('main.delivery_pdf') }}" style="display:inline-block;">
-                <input type="hidden" name="order_id" value="{{ o.id }}">
-                <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-file-earmark-pdf me-1"></i>Comprovante</button>
-              </form>
-            </td>
+            <th style="width: 40px;"></th>
+            <th>Nº</th>
+            <th>Data</th>
+            <th>Cliente</th>
+            <th>Vendedor</th>
+            <th>Valor</th>
+            <th>Peso</th>
           </tr>
-        {% else %}
-          <tr><td colspan="7" class="text-center text-muted">Nenhum pedido encontrado para os filtros selecionados.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+        </thead>
+        <tbody>
+          {% for o in orders %}
+            {% set o_valor = namespace(v=0.0) %}
+            {% set o_peso = namespace(w=0.0) %}
+            {% for it in o.items %}
+              {% set q = it.quantity or 0 %}
+              {% set up = it.unit_price or 0.0 %}
+              {% set uw = it.unit_weight or (it.product_obj.weight if it.product_obj else 0.0) %}
+              {% set o_valor.v = o_valor.v + q * up %}
+              {% set o_peso.w = o_peso.w + q * uw %}
+            {% endfor %}
+            <tr>
+              <td>
+                <input class="form-check-input order-check" type="checkbox" name="order_ids" value="{{ o.id }}">
+              </td>
+              <td>{{ o.id }}</td>
+              <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>{{ o.customer }}</td>
+              <td>{{ o.vendor_obj.name if o.vendor_obj else o.vendor }}</td>
+              <td>R$ {{ '%.2f'|format(o_valor.v) }}</td>
+              <td>{{ o_peso.w|fmt_weight }} kg</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="7" class="text-center text-muted">Nenhum pedido encontrado para os filtros selecionados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var selectAll = document.getElementById('select-all');
+      var checks = document.querySelectorAll('.order-check');
+      var generateBtn = document.getElementById('generate-btn');
+
+      function updateBtn() {
+        var any = document.querySelectorAll('.order-check:checked').length > 0;
+        generateBtn.disabled = !any;
+      }
+
+      if (selectAll) {
+        selectAll.addEventListener('change', function() {
+          checks.forEach(function(cb) {
+            cb.checked = selectAll.checked;
+          });
+          updateBtn();
+        });
+      }
+
+      checks.forEach(function(cb) {
+        cb.addEventListener('change', function() {
+          if (!cb.checked && selectAll) {
+            selectAll.checked = false;
+          }
+          updateBtn();
+        });
+      });
+    });
+  </script>
 {% endblock %}
 

@@ -598,18 +598,28 @@ def carga():
 @bp.route('/delivery/pdf', methods=['POST'])
 @admin_required
 def delivery_pdf():
-    """Gera PDF de comprovante de entrega para um pedido."""
-    order_id = request.form.get('order_id')
-    if not order_id:
-        flash('Pedido não informado.', 'danger')
+    """Gera PDF de comprovante de entrega para os pedidos selecionados."""
+    order_ids = request.form.getlist('order_ids')
+    if not order_ids:
+        flash('Nenhum pedido selecionado.', 'danger')
         return redirect(url_for('main.carga'))
-    order = Order.query.get_or_404(int(order_id))
+    orders = []
+    for oid in order_ids:
+        try:
+            order = Order.query.get(int(oid))
+            if order:
+                orders.append(order)
+        except ValueError:
+            continue
+    if not orders:
+        flash('Nenhum pedido válido selecionado.', 'danger')
+        return redirect(url_for('main.carga'))
     outdir = current_app.config.get('PRINTER_OUTPUT_DIR', 'prints')
     if not os.path.isabs(outdir):
         outdir = os.path.join(current_app.root_path, outdir)
     os.makedirs(outdir, exist_ok=True)
     try:
-        filename = print_delivery_pdf(order, outdir)
+        filename = print_delivery_pdf(orders, outdir)
         flash(f'Comprovante de entrega gerado: {filename}', 'success')
         return redirect(url_for('main.prints', filename=filename))
     except Exception as e:
