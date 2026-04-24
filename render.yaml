@@ -13,11 +13,19 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        value: sqlite:///instance/orders.db
+        fromDatabase:
+          name: mais-trigo-db
+          property: connectionString
       - key: PRINTER_OUTPUT_DIR
-        value: prints
+        value: /tmp/prints
     disk:
       name: mais-trigo-data
       mountPath: /opt/render/project/src/instance
       sizeGB: 1
+
+  - type: postgres
+    name: mais-trigo-db
+    plan: free
+    region: oregon
+    ipAllowList: []
 

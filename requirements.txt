@@ -2,3 +2,4 @@ Flask
 Flask-SQLAlchemy
 reportlab
 gunicorn
+psycopg2-binary
