@@ -184,10 +184,11 @@ def print_delivery_pdf(orders, outdir):
             ])
 
     # Total row
-    items_data.append(['', '<b>TOTAL GERAL</b>', f'<b>{total_peso:.2f} kg</b>'])
+    items_data.append(['', 'TOTAL GERAL', f'{total_peso:.2f} kg'])
 
     colWidths = [80, 380, 100]
     items_table = Table(items_data, colWidths=colWidths)
+    last_row = len(items_data) - 1
     items_style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d9bd7')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -195,8 +196,9 @@ def print_delivery_pdf(orders, outdir):
         ('ALIGN', (0, 1), (0, -1), 'CENTER'),
         ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
         ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
-        ('SPAN', (0, len(items_data)-1), (1, len(items_data)-1)),
-        ('ALIGN', (0, len(items_data)-1), (-1, len(items_data)-1), 'RIGHT'),
+        ('SPAN', (0, last_row), (1, last_row)),
+        ('ALIGN', (0, last_row), (-1, last_row), 'RIGHT'),
+        ('FONTNAME', (0, last_row), (-1, last_row), 'Helvetica-Bold'),
     ])
     items_table.setStyle(items_style)
     story.append(items_table)
