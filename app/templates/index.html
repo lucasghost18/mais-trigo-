@@ -10,7 +10,6 @@
       </form>
       <a class="btn btn-primary" href="/orders/new">Novo Pedido</a>
     </div>
-  </div>
 
   <div id="orders-list">
     {% include '_orders_list.html' %}
@@ -32,6 +31,29 @@
           .then(function(html){ if (list) list.innerHTML = html; })
           .catch(function(err){ console.error('Search error', err); });
       }
+      // Polling automático para admins — atualiza a cada 5 segundos
+      {% if session.get('role') == 'admin' %}
+      var pollTimer = null;
+      var lastFocus = null;
+      document.addEventListener('focusin', function(e){ lastFocus = e.target; });
+      function pollOrders() {
+        fetch(searchUrl + '?q=' + encodeURIComponent((input && input.value) || ''), {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+          .then(function(resp){ if (!resp.ok) throw new Error('Network error'); return resp.text(); })
+          .then(function(html){
+            if (list) {
+              var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+              list.innerHTML = html;
+              window.scrollTo(0, scrollTop);
+              if (lastFocus && lastFocus !== input && document.contains(lastFocus)) {
+                try { lastFocus.focus(); } catch(e){}
+              }
+            }
+          })
+          .catch(function(err){ console.error('Poll error', err); });
+      }
+      pollTimer = setInterval(pollOrders, 5000);
+      window.addEventListener('beforeunload', function(){ clearInterval(pollTimer); });
+      {% endif %}
       if (!input) return;
       input.addEventListener('input', function() {
         clearTimeout(timer);
