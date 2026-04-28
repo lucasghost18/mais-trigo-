@@ -1,0 +1,15 @@
+Pedido: #18
+Cliente: Lucas
+Vendedor: Vendedor Teste
+Endereço: Rua Alberto Almeida 137
+Cidade: Campina grande     Tel: 83999476720
+CNPJ: 00000000000
+Observação: Nenhuma
+Data: 2026-04-24 10:08
+------------------------------------------------------------
+QUANT  DESCRIÇÃO                        PREÇO UNID      TOTAL
+------------------------------------------------------------
+   20  ADITIVO SUPREMA 4KG                   51.00    1020.00
+TOTAL PESO: 80 kg
+TOTAL: 1020.00
+FIM

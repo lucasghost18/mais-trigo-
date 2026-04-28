@@ -5,7 +5,7 @@
   <p class="text-muted">Visualize o total de material, valores e pedidos por vendedor para organizar as cargas do caminhão.</p>
 
   <form method="get" action="{{ url_for('main.carga') }}" class="row g-3 mb-4">
-    <div class="col-md-3">
+    <div class="col-12 col-md-3">
       <label class="form-label">Vendedor</label>
       <select class="form-select" name="vendor_id">
         <option value="">Todos</option>
@@ -14,21 +14,21 @@
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-3">
+    <div class="col-12 col-md-3">
       <label class="form-label">Data inicial</label>
       <input type="date" class="form-control" name="date_from" value="{{ date_from }}">
     </div>
-    <div class="col-md-3">
+    <div class="col-12 col-md-3">
       <label class="form-label">Data final</label>
       <input type="date" class="form-control" name="date_to" value="{{ date_to }}">
     </div>
-    <div class="col-md-3 d-flex align-items-end">
+    <div class="col-12 col-md-3 d-flex align-items-end">
       <button type="submit" class="btn btn-primary w-100">Filtrar</button>
     </div>
   </form>
 
-  <div class="row mb-4">
-    <div class="col-md-4">
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
       <div class="card text-white bg-primary">
         <div class="card-body">
           <h5 class="card-title">Total Geral</h5>
@@ -39,7 +39,7 @@
       </div>
     </div>
     {% for vname, data in vendor_summary.items() %}
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
       <div class="card">
         <div class="card-body">
           <h5 class="card-title">{{ vname }}</h5>
@@ -54,7 +54,7 @@
 
   <h5>Pedidos</h5>
   <form method="post" action="{{ url_for('main.delivery_pdf') }}" id="delivery-form">
-    <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
       <div class="form-check">
         <input class="form-check-input" type="checkbox" id="select-all">
         <label class="form-check-label" for="select-all"><strong>Selecionar todos</strong></label>

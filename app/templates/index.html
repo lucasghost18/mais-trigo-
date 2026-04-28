@@ -1,20 +1,23 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-  <div class="d-flex justify-content-between mb-3">
-    <h3>Pedidos</h3>
-    <div class="d-flex">
-      <form id="order-search-form" class="d-flex me-2" method="get" action="{{ url_for('main.index') }}">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <h3 class="mb-0">Pedidos</h3>
+    <div class="d-flex flex-wrap gap-2">
+      <form id="order-search-form" class="d-flex" method="get" action="{{ url_for('main.index') }}">
         <input id="order-search" class="form-control form-control-sm me-2" name="q" placeholder="{% if session.get('role') == 'admin' %}Buscar por nº, cliente ou vendedor{% else %}Buscar por nº do pedido{% endif %}" value="{{ request.args.get('q','') }}">
         <button class="btn btn-sm btn-outline-secondary" type="submit">Buscar</button>
       </form>
       <a class="btn btn-primary" href="/orders/new">Novo Pedido</a>
     </div>
+  </div>
 
   <div id="orders-list">
     {% include '_orders_list.html' %}
   </div>
-
+  <div id="page-config" class="d-none"
+       data-search-url="{{ url_for('main.orders_search') }}"
+       data-is-admin="{{ 1 if session.get('role') == 'admin' else 0 }}"></div>
 {% endblock %}
 
 {% block scripts %}
@@ -24,36 +27,43 @@
       var input = document.getElementById('order-search');
       var list = document.getElementById('orders-list');
       var timer = null;
-      var searchUrl = '{{ url_for("main.orders_search") }}';
+      var pageConfig = document.getElementById('page-config');
+      var searchUrl = pageConfig ? pageConfig.dataset.searchUrl : '';
+      var isAdmin = !!(pageConfig && pageConfig.dataset.isAdmin === '1');
+
       function updateList(q) {
         fetch(searchUrl + '?q=' + encodeURIComponent(q || ''), {headers: {'X-Requested-With': 'XMLHttpRequest'}})
           .then(function(resp){ if (!resp.ok) throw new Error('Network error'); return resp.text(); })
           .then(function(html){ if (list) list.innerHTML = html; })
           .catch(function(err){ console.error('Search error', err); });
       }
-      // Polling automático para admins — atualiza a cada 5 segundos
-      {% if session.get('role') == 'admin' %}
-      var pollTimer = null;
-      var lastFocus = null;
-      document.addEventListener('focusin', function(e){ lastFocus = e.target; });
-      function pollOrders() {
-        fetch(searchUrl + '?q=' + encodeURIComponent((input && input.value) || ''), {headers: {'X-Requested-With': 'XMLHttpRequest'}})
-          .then(function(resp){ if (!resp.ok) throw new Error('Network error'); return resp.text(); })
-          .then(function(html){
-            if (list) {
-              var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-              list.innerHTML = html;
-              window.scrollTo(0, scrollTop);
-              if (lastFocus && lastFocus !== input && document.contains(lastFocus)) {
-                try { lastFocus.focus(); } catch(e){}
+
+      if (isAdmin) {
+        // Polling automático para admins — atualiza a cada 5 segundos
+        var pollTimer = null;
+        var lastFocus = null;
+        document.addEventListener('focusin', function(e){ lastFocus = e.target; });
+
+        function pollOrders() {
+          fetch(searchUrl + '?q=' + encodeURIComponent((input && input.value) || ''), {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+            .then(function(resp){ if (!resp.ok) throw new Error('Network error'); return resp.text(); })
+            .then(function(html){
+              if (list) {
+                var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                list.innerHTML = html;
+                window.scrollTo(0, scrollTop);
+                if (lastFocus && lastFocus !== input && document.contains(lastFocus)) {
+                  try { lastFocus.focus(); } catch(e){}
+                }
               }
-            }
-          })
-          .catch(function(err){ console.error('Poll error', err); });
+            })
+            .catch(function(err){ console.error('Poll error', err); });
+        }
+
+        pollTimer = setInterval(pollOrders, 5000);
+        window.addEventListener('beforeunload', function(){ clearInterval(pollTimer); });
       }
-      pollTimer = setInterval(pollOrders, 5000);
-      window.addEventListener('beforeunload', function(){ clearInterval(pollTimer); });
-      {% endif %}
+
       if (!input) return;
       input.addEventListener('input', function() {
         clearTimeout(timer);

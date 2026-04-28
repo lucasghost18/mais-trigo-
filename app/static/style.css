@@ -7,12 +7,36 @@
 	--shadow: 0 10px 30px rgba(13,155,215,0.06);
 }
 
+/* ✅ CORREÇÃO DE ALTURA */
+html, body {
+	height: 100%;
+	margin: 0;
+}
+
 body {
-	padding-bottom: 40px;
+	/* ❌ REMOVIDO: padding-bottom: 40px; */
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+
 	font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 	background: linear-gradient(180deg, #f6fbff 0%, #ffffff 100%);
 	color: #222;
 }
+
+/* faz o container crescer corretamente */
+.container {
+	flex: 1;
+}
+
+/* garante footer no final */
+footer {
+	margin-top: auto;
+}
+
+/* ========================= */
+/* SEU CSS ORIGINAL ABAIXO */
+/* ========================= */
 
 .navbar .brand-logo { font-size: 1.4rem; transform: translateY(-1px); }
 .navbar .brand-title { font-weight: 600; color: var(--accent); letter-spacing: 0.2px; }
@@ -39,7 +63,7 @@ body {
 
 .table-responsive { border-radius: 8px; overflow: hidden; }
 
-/* Improve input focus and touch targets for better perceived performance */
+/* Improve input focus */
 .form-control, .form-select {
 	transition: box-shadow .12s ease, transform .06s ease;
 	will-change: box-shadow, transform;
@@ -53,21 +77,45 @@ body {
 
 .btn {
 	transition: transform .08s ease, box-shadow .12s ease;
+	min-height: 44px;
+	min-width: 44px;
 }
 .btn:active { transform: translateY(0); }
+.btn-sm {
+	min-height: 36px;
+	min-width: 36px;
+}
 
-/* Smooth scrolling for tables on mobile */
+/* Smooth scrolling */
 .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-/* Make choices.js items easier to tap */
+/* Choices.js */
 .choices__inner { min-height: 44px; }
 .choices__list--dropdown .choices__item--choice { padding: 8px 12px; }
 
-/* Layout mobile removido para manter visual idêntico ao desktop */
+/* Fix dropdown overlay - garante que lista de produtos fique por cima de tudo */
+.choices {
+  position: relative;
+}
+.choices__list--dropdown,
+.choices__list--dropdown.is-active {
+  z-index: 999999 !important;
+}
+/* Garante que dropdown nao seja cortado por containers */
+#order-form .card,
+#order-form .card-body,
+#order-form .table-responsive {
+  overflow: visible !important;
+}
+/* Quando dropdown abre, garante posicao correta - controlled by inline CSS in new_order.html */
+.choices__list--dropdown {
+  max-height: 300px;
+  overflow-y: auto !important;
+}
 
 .list-group-item form { margin-top: 8px; }
 
-/* FAB styling */
+/* FAB */
 .fab {
 	position: fixed;
 	right: 16px;
@@ -86,3 +134,106 @@ body {
 	z-index: 1000;
 }
 .fab:active { transform: translateY(1px); }
+
+/* ========================= */
+/* MOBILE ITEMS LIST         */
+/* ========================= */
+.mobile-item-row {
+	padding: 0.6rem 0.5rem;
+	border-bottom: 1px solid rgba(13,155,215,0.08);
+}
+.mobile-item-row:last-of-type {
+	border-bottom: none;
+}
+.mobile-item-qty {
+	font-weight: 700;
+	color: var(--accent);
+	min-width: 2.5rem;
+}
+.mobile-item-name {
+	flex: 1;
+	padding: 0 0.5rem;
+	font-weight: 500;
+}
+.mobile-item-total {
+	font-weight: 600;
+	color: #222;
+}
+.mobile-item-price {
+	font-size: 0.85rem;
+	margin-top: 0.15rem;
+}
+.mobile-total-row {
+	padding: 0.75rem 0.5rem;
+	margin-top: 0.5rem;
+	background: rgba(13,155,215,0.04);
+	border-radius: 8px;
+	font-size: 0.95rem;
+}
+
+/* ========================= */
+/* MEDIA QUERIES MOBILE      */
+/* ========================= */
+@media (max-width: 767.98px) {
+	h3 { font-size: 1.25rem; }
+	.order-card .card-body { padding: 0.75rem; }
+	.order-header { font-size: 0.9rem; }
+	.order-header h5 { font-size: 1rem; }
+	.badge { font-size: 0.8rem; }
+	.table-responsive { font-size: 0.85rem; }
+	.btn { font-size: 0.9rem; }
+	.form-control, .form-select { font-size: 1rem; }
+	.navbar .brand-title { font-size: 1.1rem; }
+	.navbar .brand-logo-img { height: 28px; }
+	footer { font-size: 0.8rem; padding: 0.75rem 0; }
+
+	.choices__list--dropdown { z-index: 2000; }
+}
+
+/* ========================= */
+/* MODAL PRODUTO MANUAL      */
+/* ========================= */
+.custom-modal-overlay {
+	position: fixed;
+	top: 0; left: 0; right: 0; bottom: 0;
+	background: rgba(0,0,0,0.5);
+	display: none;
+	align-items: center;
+	justify-content: center;
+	z-index: 3000;
+}
+.custom-modal-overlay.active {
+	display: flex;
+}
+.custom-modal {
+	background: #fff;
+	border-radius: var(--radius);
+	box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+	padding: 1.5rem;
+	max-width: 420px;
+	width: 90%;
+	animation: modalSlideIn 0.2s ease;
+}
+@keyframes modalSlideIn {
+	from { opacity: 0; transform: translateY(-20px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+.custom-modal h5 {
+	margin-bottom: 0.75rem;
+	color: #333;
+}
+.custom-modal p {
+	margin-bottom: 1.25rem;
+	color: #555;
+	font-size: 0.95rem;
+}
+.custom-modal .modal-actions {
+	display: flex;
+	gap: 0.5rem;
+	justify-content: flex-end;
+}
+.custom-modal .modal-actions .btn {
+	min-height: 40px;
+	min-width: auto;
+	padding: 0.5rem 1.25rem;
+}

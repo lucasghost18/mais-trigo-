@@ -167,44 +167,16 @@ def new_order():
             up = request.form.get(f'unit_price-{i}')
             uw = request.form.get(f'unit_weight-{i}')
             # fallback to free-text product name
-            prod_text = request.form.get(f'product-{i}')
+            prod_text = request.form.get(f'product_text-{i}')
+            # Check if manual mode is enabled for this item
+            is_manual = request.form.get(f'product_manual-{i}') == 'on'
             if qty:
                 try:
                     q = int(qty)
                 except:
                     q = 0
-                # resolve product by id if provided
-                pid = None
-                if prod_id:
-                    try:
-                        pid = int(prod_id)
-                    except:
-                        pid = None
-                if pid:
-                    p = Product.query.get(pid)
-                    if p:
-                        product_name = p.name
-                        try:
-                            price = float(up) if up else float(p.unit_price or 0.0)
-                        except:
-                            price = float(p.unit_price or 0.0)
-                        try:
-                            weight = float(uw) if uw else float(p.weight or 0.0)
-                        except:
-                            weight = float(p.weight or 0.0)
-                        items.append({'product': product_name, 'product_id': pid, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
-                    else:
-                        # unknown id, fallback to text
-                        try:
-                            price = float(up) if up else 0.0
-                        except:
-                            price = 0.0
-                        try:
-                            weight = float(uw) if uw else 0.0
-                        except:
-                            weight = 0.0
-                        items.append({'product': prod_text or '', 'product_id': None, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
-                else:
+                # If manual mode, ignore product_id and use text
+                if is_manual:
                     try:
                         price = float(up) if up else 0.0
                     except:
@@ -214,6 +186,48 @@ def new_order():
                     except:
                         weight = 0.0
                     items.append({'product': prod_text or '', 'product_id': None, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
+                else:
+                    # resolve product by id if provided
+                    pid = None
+                    if prod_id:
+                        try:
+                            pid = int(prod_id)
+                        except:
+                            pid = None
+                    if pid:
+                        p = Product.query.get(pid)
+                        if p:
+                            product_name = p.name
+                            try:
+                                price = float(up) if up else float(p.unit_price or 0.0)
+                            except:
+                                price = float(p.unit_price or 0.0)
+                            try:
+                                weight = float(uw) if uw else float(p.weight or 0.0)
+                            except:
+                                weight = float(p.weight or 0.0)
+                            items.append({'product': product_name, 'product_id': pid, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
+                        else:
+                            # unknown id, fallback to text
+                            try:
+                                price = float(up) if up else 0.0
+                            except:
+                                price = 0.0
+                            try:
+                                weight = float(uw) if uw else 0.0
+                            except:
+                                weight = 0.0
+                            items.append({'product': prod_text or '', 'product_id': None, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
+                    else:
+                        try:
+                            price = float(up) if up else 0.0
+                        except:
+                            price = 0.0
+                        try:
+                            weight = float(uw) if uw else 0.0
+                        except:
+                            weight = 0.0
+                        items.append({'product': prod_text or '', 'product_id': None, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
 
         order = Order(customer=customer, vendor=vendor, notes=notes, address=address, city=city, phone=phone, cnpj=cnpj)
         if vendor_id:
@@ -259,6 +273,156 @@ def new_order():
         for p in products
     ]
     return render_template('new_order.html', vendors=vendors, products=products_data, is_admin=is_admin(), current_vendor_id=get_current_vendor_id())
+
+
+@bp.route('/orders/<int:order_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    # Permission check
+    if not is_admin():
+        vid = get_current_vendor_id()
+        if order.vendor_id != vid:
+            flash('Você só pode editar seus próprios pedidos.', 'danger')
+            return redirect(url_for('main.index'))
+    if order.delivered:
+        flash('Pedidos já entregues não podem ser editados.', 'warning')
+        return redirect(url_for('main.index'))
+
+    if request.method == 'POST':
+        order.customer = request.form.get('customer', 'Cliente')
+        order.vendor = request.form.get('vendor', '')
+        vendor_id = request.form.get('vendor_id')
+        order.address = request.form.get('address', '')
+        order.city = request.form.get('city', '')
+        order.phone = request.form.get('phone', '')
+        order.cnpj = request.form.get('cnpj', '')
+        order.notes = request.form.get('notes', '')
+        if vendor_id:
+            try:
+                order.vendor_id = int(vendor_id)
+            except:
+                pass
+        else:
+            order.vendor_id = None
+        # Non-admin cannot change vendor
+        if not is_admin():
+            vid = get_current_vendor_id()
+            if vid:
+                order.vendor_id = vid
+                v = Vendor.query.get(vid)
+                if v:
+                    order.vendor = v.name
+
+        # Rebuild items
+        try:
+            item_count = int(request.form.get('item-count', 0))
+        except ValueError:
+            item_count = 0
+        # Remove old items
+        OrderItem.query.filter_by(order_id=order.id).delete()
+        items = []
+        for i in range(item_count):
+            prod_id = request.form.get(f'product_id-{i}')
+            qty = request.form.get(f'quantity-{i}')
+            up = request.form.get(f'unit_price-{i}')
+            uw = request.form.get(f'unit_weight-{i}')
+            prod_text = request.form.get(f'product_text-{i}')
+            # Check if manual mode is enabled for this item
+            is_manual = request.form.get(f'product_manual-{i}') == 'on'
+            if qty:
+                try:
+                    q = int(qty)
+                except:
+                    q = 0
+                # If manual mode, ignore product_id and use text
+                if is_manual:
+                    try:
+                        price = float(up) if up else 0.0
+                    except:
+                        price = 0.0
+                    try:
+                        weight = float(uw) if uw else 0.0
+                    except:
+                        weight = 0.0
+                    items.append({'product': prod_text or '', 'product_id': None, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
+                else:
+                    pid = None
+                    if prod_id:
+                        try:
+                            pid = int(prod_id)
+                        except:
+                            pid = None
+                    if pid:
+                        p = Product.query.get(pid)
+                        if p:
+                            product_name = p.name
+                            try:
+                                price = float(up) if up else float(p.unit_price or 0.0)
+                            except:
+                                price = float(p.unit_price or 0.0)
+                            try:
+                                weight = float(uw) if uw else float(p.weight or 0.0)
+                            except:
+                                weight = float(p.weight or 0.0)
+                            items.append({'product': product_name, 'product_id': pid, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
+                        else:
+                            try:
+                                price = float(up) if up else 0.0
+                            except:
+                                price = 0.0
+                            try:
+                                weight = float(uw) if uw else 0.0
+                            except:
+                                weight = 0.0
+                            items.append({'product': prod_text or '', 'product_id': None, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
+                    else:
+                        try:
+                            price = float(up) if up else 0.0
+                        except:
+                            price = 0.0
+                        try:
+                            weight = float(uw) if uw else 0.0
+                        except:
+                            weight = 0.0
+                        items.append({'product': prod_text or '', 'product_id': None, 'quantity': q, 'unit_price': price, 'unit_weight': weight})
+        for it in items:
+            db.session.add(OrderItem(order_id=order.id, product=it['product'], product_id=it.get('product_id'), quantity=it['quantity'], unit_price=it.get('unit_price', 0.0), unit_weight=it.get('unit_weight', 0.0)))
+        db.session.commit()
+        # Re-generate print file
+        print_method = request.form.get('print_method')
+        try:
+            filename = print_order(order, method=print_method)
+            flash(f'Pedido atualizado e arquivo gerado: {filename}', 'success')
+        except Exception as e:
+            current_app.logger.exception('Erro ao gerar impressão: %s', e)
+            flash('Pedido atualizado com sucesso. Falha ao gerar arquivo de impressão.', 'warning')
+        return redirect(url_for('main.index'))
+
+    # GET
+    vendors = Vendor.query.order_by(Vendor.name).all()
+    products = Product.query.order_by(Product.name).all()
+    products_data = [
+        {
+            'id': p.id,
+            'name': p.name,
+            'unit_price': float(p.unit_price or 0.0),
+            'weight': float(p.weight or 0.0),
+            'sku': p.sku or '',
+            'manufacturer': p.manufacturer or ''
+        }
+        for p in products
+    ]
+    order_items = []
+    for it in order.items:
+        order_items.append({
+            'product_id': it.product_id,
+            'product': it.product,
+            'quantity': it.quantity,
+            'unit_price': float(it.unit_price or 0.0),
+            'unit_weight': float(it.unit_weight or 0.0)
+        })
+    return render_template('new_order.html', order=order, order_items=order_items, vendors=vendors, products=products_data, is_admin=is_admin(), current_vendor_id=get_current_vendor_id())
 
 
 @bp.route('/vendors')
@@ -677,6 +841,7 @@ def products_search():
             'name': p.name,
             'sku': p.sku or '',
             'manufacturer': p.manufacturer or '',
-            'unit_price': float(p.unit_price or 0.0)
+            'unit_price': float(p.unit_price or 0.0),
+            'weight': float(p.weight or 0.0)
         })
     return jsonify(results)

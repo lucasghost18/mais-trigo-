@@ -2,7 +2,7 @@
   {% for o in orders %}
     <div class="card mb-4 order-card">
       <div class="card-body">
-        <div class="order-header d-flex justify-content-between">
+        <div class="order-header d-flex justify-content-between flex-wrap">
           <div>
             <h5 class="card-title mb-1">PEDIDO Nº <span class="badge">{{ o.id }}</span></h5>
             <div><strong>Cliente:</strong> {{ o.customer }}</div>
@@ -12,12 +12,12 @@
             <div><strong>CNPJ:</strong> {{ o.cnpj }}</div>
             <div><strong>Observação:</strong> {{ o.notes }}</div>
           </div>
-          <div class="text-end">
+          <div class="text-end mt-2 mt-md-0">
             <div><strong>Data:</strong> {{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
           </div>
         </div>
 
-        <div class="table-responsive mt-3">
+        <div class="table-responsive mt-3 d-none d-md-block">
           <table class="table table-bordered order-table mb-0">
             <thead class="table-primary">
               <tr>
@@ -56,12 +56,42 @@
           </table>
         </div>
 
-        <div class="d-flex justify-content-between mt-3">
-            <div>
-            <form method="post" action="/orders/{{ o.id }}/print" style="display:inline-block;margin-right:8px;">
+        <!-- Mobile items list -->
+        <div class="d-md-none mt-3">
+          {% set ns = namespace(total=0.0, weight=0.0) %}
+          {% for it in o.items %}
+            {% set unit_w = (it.unit_weight or (it.product_obj.weight if it.product_obj else 0.0)) %}
+            {% set line_total = (it.quantity or 0) * (it.unit_price or 0.0) %}
+            {% set line_weight = (it.quantity or 0) * unit_w %}
+            {% set ns.total = ns.total + line_total %}
+            {% set ns.weight = ns.weight + line_weight %}
+            <div class="mobile-item-row">
+              <div class="d-flex justify-content-between">
+                <span class="mobile-item-qty">{{ it.quantity }}x</span>
+                <span class="mobile-item-name">{{ it.product or (it.product_obj.name if it.product_obj else '') }}</span>
+                <span class="mobile-item-total">{{ '%.2f'|format(line_total) }}</span>
+              </div>
+              <div class="mobile-item-price text-muted">{{ '%.2f'|format(it.unit_price or 0.0) }} unid</div>
+            </div>
+          {% endfor %}
+          <div class="mobile-total-row">
+            <div class="d-flex justify-content-between">
+              <strong>TOTAL</strong>
+              <strong>{{ '%.2f'|format(ns.total) }}</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+              <strong>PESO TOTAL</strong>
+              <strong>{{ ns.weight|fmt_weight }} kg</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between flex-wrap gap-2 mt-3">
+          <div class="d-flex flex-wrap gap-2">
+            <form method="post" action="/orders/{{ o.id }}/print" style="display:inline-block;">
               <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-printer me-1"></i> Imprimir</button>
             </form>
-            <form method="post" action="/orders/{{ o.id }}/print" style="display:inline-block;margin-right:8px;">
+            <form method="post" action="/orders/{{ o.id }}/print" style="display:inline-block;">
               <input type="hidden" name="print_method" value="pdf">
               <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-file-earmark-pdf me-1"></i> Gerar PDF</button>
             </form>
@@ -73,7 +103,8 @@
               <button class="btn btn-sm btn-outline-secondary" disabled>Arquivo não gerado</button>
             {% endif %}
           </div>
-          <div>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="/orders/{{ o.id }}/edit" class="btn btn-sm btn-warning"><i class="bi bi-pencil me-1"></i> Editar</a>
             <form method="post" action="/orders/{{ o.id }}/delete" onsubmit="return confirm('Remover pedido #{{ o.id }}?');" style="display:inline-block;">
               <button class="btn btn-sm btn-danger" type="submit"><i class="bi bi-trash me-1"></i> Excluir</button>
             </form>

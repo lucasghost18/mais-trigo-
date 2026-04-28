@@ -1,0 +1,15 @@
+Pedido: #21
+Cliente: ADRIANA
+Vendedor: -
+Endereço: -
+Cidade: GUARABIRA    Tel: -
+CNPJ: -
+Observação: -
+Data: 2026-04-28 11:26
+------------------------------------------------------------
+QUANT  DESCRIÇÃO                        PREÇO UNID      TOTAL
+------------------------------------------------------------
+   35  FT PASTEL D.BENTA 5x5KG               99.00    3465.00
+TOTAL PESO: 875 kg
+TOTAL: 3465.00
+FIM
